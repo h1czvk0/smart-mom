@@ -172,7 +172,7 @@ textarea {
 
 .topbar-actions {
   display: grid;
-  grid-template-columns: minmax(220px, 320px) auto auto;
+  grid-template-columns: minmax(220px, 320px) auto auto auto;
   align-items: center;
   gap: 12px;
   color: #a8bdd0;

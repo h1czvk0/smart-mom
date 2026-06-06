@@ -444,14 +444,14 @@ export const deviceStatusOptions = ['全部状态', '运行', '待机', '预警'
 export const kpis = buildKpis()
 export const reportStats = buildReportStats()
 
-export function buildKpis() {
-  const total = tasks.length
-  const running = tasks.filter((task) => task.status === '生产中').length
-  const abnormal = tasks.filter((task) => task.status === '异常').length
-  const completed = tasks.filter((task) => task.status === '已完成').length
-  const completionRate = Math.round((tasks.reduce((sum, task) => sum + task.progress, 0) / total) * 10) / 10
+export function buildKpis(sourceTasks = tasks, sourceDevices = devices) {
+  const total = sourceTasks.length
+  const running = sourceTasks.filter((task) => task.status === '生产中').length
+  const abnormal = sourceTasks.filter((task) => task.status === '异常').length
+  const completed = sourceTasks.filter((task) => task.status === '已完成').length
+  const completionRate = Math.round((sourceTasks.reduce((sum, task) => sum + task.progress, 0) / total) * 10) / 10
   const deviceUtilization = Math.round(
-    devices.reduce((sum, device) => sum + device.utilization, 0) / devices.length,
+    sourceDevices.reduce((sum, device) => sum + device.utilization, 0) / sourceDevices.length,
   )
 
   return [
@@ -464,17 +464,17 @@ export function buildKpis() {
   ]
 }
 
-export function buildReportStats() {
-  const totalOutput = tasks.reduce((sum, task) => sum + task.finishedQty, 0)
-  const plannedOutput = tasks.reduce((sum, task) => sum + task.planQty, 0)
+export function buildReportStats(sourceTasks = tasks, sourceDevices = devices) {
+  const totalOutput = sourceTasks.reduce((sum, task) => sum + task.finishedQty, 0)
+  const plannedOutput = sourceTasks.reduce((sum, task) => sum + task.planQty, 0)
   const completionRate = Math.round((totalOutput / plannedOutput) * 100)
-  const abnormalCount = tasks.filter((task) => task.status === '异常').length
+  const abnormalCount = sourceTasks.filter((task) => task.status === '异常').length
   const deviceUtilization = Math.round(
-    devices.reduce((sum, device) => sum + device.utilization, 0) / devices.length,
+    sourceDevices.reduce((sum, device) => sum + device.utilization, 0) / sourceDevices.length,
   )
   const topRisk =
-    tasks.find((task) => task.status === '异常' && task.urgent)?.abnormalType ??
-    tasks.find((task) => task.status === '异常')?.abnormalType ??
+    sourceTasks.find((task) => task.status === '异常' && task.urgent)?.abnormalType ??
+    sourceTasks.find((task) => task.status === '异常')?.abnormalType ??
     '暂无关键异常'
 
   return {

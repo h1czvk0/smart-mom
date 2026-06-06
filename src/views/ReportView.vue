@@ -1,21 +1,20 @@
 <script setup>
-import * as echarts from 'echarts'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { BarChart, LineChart, PieChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
+import { init, use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import {
-  abnormalTypes,
-  buildReportStats,
-  devices,
-  productionTrend,
-  reportStats as initialReportStats,
-  tasks,
-} from '../data/mock'
+import { abnormalTypes, buildReportStats, productionTrend } from '../data/mock'
+import { productionState } from '../stores/productionStore'
+
+use([CanvasRenderer, LineChart, BarChart, PieChart, GridComponent, LegendComponent, TooltipComponent])
 
 const route = useRoute()
 const loading = ref(false)
 const error = ref('')
-const summary = ref(route.query.demo === 'ai' ? buildSummary(initialReportStats) : '')
-const stats = computed(() => buildReportStats())
+const stats = computed(() => buildReportStats(productionState.tasks, productionState.devices))
+const summary = ref(route.query.demo === 'ai' ? buildSummary(stats.value) : '')
 const trendChart = ref(null)
 const statusChart = ref(null)
 const deviceChart = ref(null)
@@ -24,13 +23,20 @@ let chartInstances = []
 const statusData = computed(() =>
   ['待生产', '生产中', '已完成', '异常'].map((status) => ({
     name: status,
-    value: tasks.filter((task) => task.status === status).length,
+    value: productionState.tasks.filter((task) => task.status === status).length,
   })),
 )
 
+const chartVersion = computed(() =>
+  [
+    productionState.tasks.map((task) => `${task.id}:${task.status}:${task.finishedQty}`).join('|'),
+    productionState.devices.map((device) => `${device.code}:${device.status}:${device.utilization}`).join('|'),
+  ].join('::'),
+)
+
 function buildSummary(currentStats = stats.value) {
-  const urgentTasks = tasks.filter((task) => task.urgent && task.status !== '已完成')
-  const abnormalDevices = devices.filter((device) => device.status === '异常' || device.status === '预警')
+  const urgentTasks = productionState.tasks.filter((task) => task.urgent && task.status !== '已完成')
+  const abnormalDevices = productionState.devices.filter((device) => device.status === '异常' || device.status === '预警')
   const riskText =
     urgentTasks.length > 0
       ? `${urgentTasks.map((task) => task.id).join('、')} 需要优先跟进`
@@ -57,12 +63,13 @@ function generateSummary() {
 }
 
 function renderCharts() {
-  chartInstances.forEach((chart) => chart.dispose())
-  chartInstances = [
-    echarts.init(trendChart.value),
-    echarts.init(statusChart.value),
-    echarts.init(deviceChart.value),
-  ]
+  if (!trendChart.value || !statusChart.value || !deviceChart.value) {
+    return
+  }
+
+  if (chartInstances.length === 0) {
+    chartInstances = [init(trendChart.value), init(statusChart.value), init(deviceChart.value)]
+  }
 
   chartInstances[0].setOption({
     color: ['#5eead4', '#f59e0b'],
@@ -118,7 +125,7 @@ function renderCharts() {
     grid: { left: 48, right: 18, top: 22, bottom: 42 },
     xAxis: {
       type: 'category',
-      data: devices.map((device) => device.code),
+      data: productionState.devices.map((device) => device.code),
       axisLabel: { color: '#9fb2c6', interval: 0 },
       axisLine: { lineStyle: { color: '#27445f' } },
     },
@@ -133,7 +140,7 @@ function renderCharts() {
         name: '利用率',
         type: 'bar',
         barWidth: 16,
-        data: devices.map((device) => device.utilization),
+        data: productionState.devices.map((device) => device.utilization),
       },
     ],
   })
@@ -149,9 +156,15 @@ onMounted(async () => {
   window.addEventListener('resize', resizeCharts)
 })
 
+watch(chartVersion, async () => {
+  await nextTick()
+  renderCharts()
+})
+
 onBeforeUnmount(() => {
   window.removeEventListener('resize', resizeCharts)
   chartInstances.forEach((chart) => chart.dispose())
+  chartInstances = []
 })
 </script>
 
@@ -185,7 +198,7 @@ onBeforeUnmount(() => {
         <article>
           <span>设备利用率</span>
           <strong>{{ stats.deviceUtilization }}%</strong>
-          <small>13 台设备平均值</small>
+          <small>{{ productionState.devices.length }} 台设备平均值</small>
         </article>
       </div>
     </section>
@@ -202,7 +215,7 @@ onBeforeUnmount(() => {
       <article class="panel chart-card">
         <div class="section-title compact-title">
           <h2>任务状态占比</h2>
-          <span>{{ tasks.length }} 条工单</span>
+          <span>{{ productionState.tasks.length }} 条工单</span>
         </div>
         <div ref="statusChart" class="chart-box"></div>
       </article>
@@ -210,7 +223,7 @@ onBeforeUnmount(() => {
       <article class="panel chart-card wide">
         <div class="section-title compact-title">
           <h2>设备利用率排行</h2>
-          <span>{{ devices.length }} 台设备</span>
+          <span>{{ productionState.devices.length }} 台设备</span>
         </div>
         <div ref="deviceChart" class="chart-box"></div>
       </article>

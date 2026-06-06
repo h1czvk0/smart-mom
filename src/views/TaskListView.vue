@@ -1,10 +1,13 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import ProgressBar from '../components/common/ProgressBar.vue'
 import StatusTag from '../components/common/StatusTag.vue'
-import { lineOptions, statusOptions, tasks } from '../data/mock'
+import { lineOptions, statusOptions } from '../data/mock'
+import { productionState } from '../stores/productionStore'
 
+const route = useRoute()
+const router = useRouter()
 const keyword = ref('')
 const status = ref('全部状态')
 const line = ref('全部产线')
@@ -17,10 +20,18 @@ const priorityScore = {
   低: 1,
 }
 
+watch(
+  () => route.query.keyword,
+  (value) => {
+    keyword.value = typeof value === 'string' ? value : ''
+  },
+  { immediate: true },
+)
+
 const filteredTasks = computed(() => {
   const text = keyword.value.trim().toLowerCase()
 
-  return tasks
+  return productionState.tasks
     .filter((task) => {
       const matchesKeyword =
         !text ||
@@ -28,7 +39,10 @@ const filteredTasks = computed(() => {
         task.product.toLowerCase().includes(text) ||
         task.line.toLowerCase().includes(text) ||
         task.process.toLowerCase().includes(text) ||
-        task.owner.toLowerCase().includes(text)
+        task.owner.toLowerCase().includes(text) ||
+        task.device.toLowerCase().includes(text) ||
+        task.status.toLowerCase().includes(text) ||
+        task.abnormalType.toLowerCase().includes(text)
       const matchesStatus = status.value === '全部状态' || task.status === status.value
       const matchesLine = line.value === '全部产线' || task.line === line.value
       const matchesUrgent = !urgentOnly.value || task.urgent
@@ -54,6 +68,7 @@ function resetFilters() {
   line.value = '全部产线'
   urgentOnly.value = false
   sortBy.value = 'deadline'
+  router.replace({ path: '/tasks' })
 }
 </script>
 

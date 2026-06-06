@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 const menus = [
   { path: '/dashboard', label: '控制台首页' },
   { path: '/tasks', label: '生产任务' },
-  { path: '/tasks/WO-20260606-001', label: '任务报工' },
+  { path: '/tasks?keyword=异常', label: '异常跟进' },
   { path: '/devices', label: '设备工序' },
   { path: '/reports', label: '生产报表' },
 ]

@@ -3,11 +3,10 @@ import { computed, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import ProgressBar from '../components/common/ProgressBar.vue'
 import StatusTag from '../components/common/StatusTag.vue'
-import { devices, reportRecords, tasks } from '../data/mock'
+import { findTaskById, productionState, submitTaskReport } from '../stores/productionStore'
 
 const route = useRoute()
-const task = computed(() => tasks.find((item) => item.id === route.params.id) ?? tasks[0])
-const taskRecords = ref([])
+const task = computed(() => findTaskById(route.params.id) ?? productionState.tasks[0])
 
 const form = reactive({
   process: '',
@@ -27,10 +26,17 @@ watch(
   (current) => {
     form.process = current.process
     form.device = current.device
-    taskRecords.value = reportRecords.filter((record) => record.taskId === current.id)
+    form.finishedQty = Math.min(120, Math.max(current.planQty - current.finishedQty, 0))
+    form.badQty = 0
   },
   { immediate: true },
 )
+
+const taskRecords = computed(() =>
+  productionState.reportRecords.filter((record) => record.taskId === task.value.id),
+)
+
+const remainingQty = computed(() => Math.max(task.value.planQty - task.value.finishedQty, 0))
 
 const processTimeline = computed(() => {
   const steps = ['排产下发', '物料齐套', task.value.process, '质量复核', '入库交接']
@@ -50,6 +56,11 @@ function submitReport() {
     return
   }
 
+  if (Number(form.finishedQty) > remainingQty.value) {
+    setMessage(`本次完成数量不能超过剩余数量 ${remainingQty.value}。`, 'error')
+    return
+  }
+
   if (Number(form.badQty) < 0 || Number(form.badQty) > Number(form.finishedQty)) {
     setMessage('不良数量不能小于 0，也不能大于完成数量。', 'error')
     return
@@ -60,39 +71,15 @@ function submitReport() {
     return
   }
 
-  const finishedQty = Number(form.finishedQty)
-  const badQty = Number(form.badQty)
-  const currentTask = task.value
+  submitTaskReport(task.value.id, form)
+  form.finishedQty = Math.min(120, Math.max(task.value.planQty - task.value.finishedQty, 0))
+  form.badQty = 0
+  form.abnormal = false
+  form.abnormalText = ''
 
-  currentTask.finishedQty = Math.min(currentTask.planQty, currentTask.finishedQty + finishedQty)
-  currentTask.progress = Math.min(100, Math.round((currentTask.finishedQty / currentTask.planQty) * 100))
-  currentTask.status = form.abnormal ? '异常' : currentTask.progress >= 100 ? '已完成' : '生产中'
-  currentTask.abnormalType = form.abnormal ? form.abnormalText.trim() : currentTask.abnormalType
-
-  const record = {
-    taskId: currentTask.id,
-    time: new Intl.DateTimeFormat('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-      .format(new Date())
-      .replace(/\//g, '-'),
-    process: form.process,
-    device: form.device,
-    finishedQty,
-    badQty,
-    status: form.abnormal ? '异常' : '正常',
-    remark: form.abnormal ? form.abnormalText.trim() : form.remark.trim(),
-  }
-
-  reportRecords.unshift(record)
-  taskRecords.value.unshift(record)
   setMessage(
-    form.abnormal ? '异常报工已记录，任务状态已切换为异常。' : '报工提交成功，任务进度已更新。',
-    form.abnormal ? 'warning' : 'success',
+    task.value.status === '异常' ? '异常报工已记录，任务状态已切换为异常。' : '报工提交成功，任务进度已更新。',
+    task.value.status === '异常' ? 'warning' : 'success',
   )
 }
 
@@ -131,8 +118,8 @@ function setMessage(text, type) {
           <strong>{{ task.owner }}</strong>
         </div>
         <div>
-          <span>计划 / 完成</span>
-          <strong>{{ task.planQty }} / {{ task.finishedQty }}</strong>
+          <span>计划 / 完成 / 剩余</span>
+          <strong>{{ task.planQty }} / {{ task.finishedQty }} / {{ remainingQty }}</strong>
         </div>
         <div>
           <span>截止时间</span>
@@ -155,7 +142,7 @@ function setMessage(text, type) {
     <section class="panel">
       <div class="section-title">
         <h2>报工录入</h2>
-        <span>v-model 表单校验</span>
+        <span>刷新后保留本地演示数据</span>
       </div>
       <form class="report-form" @submit.prevent="submitReport">
         <label>当前工序<input v-model="form.process" /></label>
@@ -163,7 +150,7 @@ function setMessage(text, type) {
           使用设备
           <select v-model="form.device">
             <option>{{ task.device }}</option>
-            <option v-for="device in devices" :key="device.code">{{ device.code }} {{ device.name }}</option>
+            <option v-for="device in productionState.devices" :key="device.code">{{ device.code }} {{ device.name }}</option>
           </select>
         </label>
         <label>本次完成数量<input v-model.number="form.finishedQty" type="number" min="0" /></label>
@@ -174,7 +161,7 @@ function setMessage(text, type) {
         </label>
         <label>异常说明<textarea v-model="form.abnormalText" placeholder="如有异常请填写原因、影响和处理建议"></textarea></label>
         <label>备注<textarea v-model="form.remark" placeholder="填写本次报工备注"></textarea></label>
-        <button type="submit">提交报工</button>
+        <button type="submit" :disabled="remainingQty === 0">提交报工</button>
       </form>
 
       <p v-if="message" class="feedback" :class="messageType">{{ message }}</p>

@@ -2,14 +2,17 @@
 import { computed, ref } from 'vue'
 import ProgressBar from '../components/common/ProgressBar.vue'
 import StatusTag from '../components/common/StatusTag.vue'
-import { devices, deviceStatusOptions, lineOptions, processes } from '../data/mock'
+import { deviceStatusOptions, lineOptions, processes } from '../data/mock'
+import { productionState } from '../stores/productionStore'
 
 const status = ref('全部状态')
 const line = ref('全部产线')
-const selectedDeviceCode = ref(devices.find((item) => item.status === '异常')?.code ?? devices[0].code)
+const selectedDeviceCode = ref(
+  productionState.devices.find((item) => item.status === '异常')?.code ?? productionState.devices[0].code,
+)
 
 const filteredDevices = computed(() =>
-  devices.filter((device) => {
+  productionState.devices.filter((device) => {
     const matchesStatus = status.value === '全部状态' || device.status === status.value
     const matchesLine = line.value === '全部产线' || device.line === line.value
     return matchesStatus && matchesLine
@@ -17,7 +20,10 @@ const filteredDevices = computed(() =>
 )
 
 const selectedDevice = computed(
-  () => devices.find((device) => device.code === selectedDeviceCode.value) ?? filteredDevices.value[0] ?? devices[0],
+  () =>
+    productionState.devices.find((device) => device.code === selectedDeviceCode.value) ??
+    filteredDevices.value[0] ??
+    productionState.devices[0],
 )
 
 function selectDevice(code) {

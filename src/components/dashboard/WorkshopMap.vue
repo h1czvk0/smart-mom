@@ -1,5 +1,31 @@
 <script setup>
-import { productionLines } from '../../data/mock'
+import { computed } from 'vue'
+import { productionState } from '../../stores/productionStore'
+
+const lines = ['A 产线', 'B 产线', 'C 产线', 'D 产线']
+
+const productionLines = computed(() =>
+  lines.map((line) => ({
+    name: line,
+    task: productionState.tasks.find((task) => task.line === line && task.status !== '已完成')?.id ?? '暂无待执行任务',
+    devices: productionState.devices
+      .filter((device) => device.line === line)
+      .slice(0, 4)
+      .map((device) => ({
+        code: device.code,
+        status: mapDeviceStatus(device.status),
+      })),
+  })),
+)
+
+function mapDeviceStatus(status) {
+  return {
+    运行: 'running',
+    待机: 'idle',
+    预警: 'warning',
+    异常: 'down',
+  }[status]
+}
 </script>
 
 <template>

@@ -1,14 +1,18 @@
 <script setup>
+import { computed } from 'vue'
 import ProgressBar from '../components/common/ProgressBar.vue'
 import StatusTag from '../components/common/StatusTag.vue'
 import KpiCard from '../components/dashboard/KpiCard.vue'
 import WorkshopMap from '../components/dashboard/WorkshopMap.vue'
-import { buildKpis, devices, tasks } from '../data/mock'
+import { buildKpis } from '../data/mock'
+import { productionState } from '../stores/productionStore'
 
-const kpis = buildKpis()
-const abnormalTasks = tasks.filter((task) => task.status === '异常')
-const urgentTasks = tasks.filter((task) => task.urgent && task.status !== '已完成')
-const deviceRisks = devices.filter((device) => device.status === '异常' || device.status === '预警')
+const kpis = computed(() => buildKpis(productionState.tasks, productionState.devices))
+const abnormalTasks = computed(() => productionState.tasks.filter((task) => task.status === '异常'))
+const urgentTasks = computed(() => productionState.tasks.filter((task) => task.urgent && task.status !== '已完成'))
+const deviceRisks = computed(() =>
+  productionState.devices.filter((device) => device.status === '异常' || device.status === '预警'),
+)
 </script>
 
 <template>
@@ -52,7 +56,7 @@ const deviceRisks = devices.filter((device) => device.status === '异常' || dev
     <section class="panel table-panel">
       <div class="section-title">
         <h2>生产任务概览</h2>
-        <span>mock 数据动态渲染</span>
+        <span>store 数据动态渲染</span>
       </div>
       <div class="table-scroll">
         <table>
@@ -66,7 +70,7 @@ const deviceRisks = devices.filter((device) => device.status === '异常' || dev
             </tr>
           </thead>
           <tbody>
-            <tr v-for="task in tasks.slice(0, 8)" :key="task.id">
+            <tr v-for="task in productionState.tasks.slice(0, 8)" :key="task.id">
               <td data-label="工单号">{{ task.id }}</td>
               <td data-label="产品">{{ task.product }}</td>
               <td data-label="产线">{{ task.line }}</td>
