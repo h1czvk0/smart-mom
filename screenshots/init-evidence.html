@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vue 项目初始化证据</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 32px;
+        color: #dbeafe;
+        background: #07111f;
+        font-family: Consolas, "Microsoft YaHei", monospace;
+      }
+      .terminal {
+        max-width: 1160px;
+        border: 1px solid #1f3a55;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #081726;
+      }
+      .bar {
+        padding: 12px 18px;
+        color: #67e8f9;
+        background: #0b1b2b;
+        border-bottom: 1px solid #1f3a55;
+      }
+      pre {
+        margin: 0;
+        padding: 22px;
+        white-space: pre-wrap;
+        line-height: 1.7;
+        font-size: 18px;
+      }
+      .ok {
+        color: #86efac;
+      }
+      .warn {
+        color: #fbbf24;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="terminal">
+      <div class="bar">PowerShell - smart-mom Vue3 初始化记录</div>
+      <pre>
+PS E:\program\前端技术开发项目实训&gt; node -v
+v22.12.0
+
+PS E:\program\前端技术开发项目实训&gt; npm -v
+10.9.0
+
+PS E:\program\前端技术开发项目实训&gt; npx create-vue@latest --router --eslint --prettier smart-mom
+Vue.js - The Progressive JavaScript Framework
+正在初始化项目 E:\program\前端技术开发项目实训\smart-mom...
+项目初始化完成
+
+PS E:\program\前端技术开发项目实训\smart-mom&gt; npm install
+added 244 packages, audited 245 packages
+found 0 vulnerabilities
+
+PS E:\program\前端技术开发项目实训\smart-mom&gt; npm install echarts
+added 4 packages, audited 249 packages
+found 0 vulnerabilities
+
+PS E:\program\前端技术开发项目实训\smart-mom&gt; npm run build
+vite v8.0.16 building client environment for production...
+<span class="ok">built successfully</span>
+
+PS E:\program\前端技术开发项目实训\smart-mom&gt; npm run dev -- --host 0.0.0.0 --port 3000
+VITE v8.0.16 ready
+Local: <span class="ok">http://localhost:3000/</span>
+
+备注：5173 与 5180 端口在本机绑定时返回 EACCES，已改用 3000 端口运行。
+依赖安装阶段出现 Node 22.12.0 与部分 ESLint 包建议版本 22.13.0 的 <span class="warn">EBADENGINE 警告</span>，但安装、lint、build 均通过。
+      </pre>
+    </section>
+  </body>
+</html>
