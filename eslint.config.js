@@ -22,7 +22,7 @@ export default defineConfig([
   },
 
   {
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.mjs', 'vite.config.js'],
     languageOptions: {
       globals: {
         ...globals.node,

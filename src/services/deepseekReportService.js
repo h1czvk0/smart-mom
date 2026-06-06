@@ -1,0 +1,241 @@
+export const promptProfiles = {
+  standard: {
+    label: '标准日报',
+    description: '按整体表现、风险、设备、建议四段生成生产日报。',
+    system:
+      '你是一个制造企业 MOM 生产管理系统的数据分析助手。请只回答与生产任务、工单、设备、工序、产量、异常处理相关的内容。',
+  },
+  risk: {
+    label: '风险优先',
+    description: '优先指出异常工单、加急任务和设备风险，适合班组长晨会。',
+    system:
+      '你是一个制造车间异常处置顾问。请优先识别异常工单、加急任务、低利用率设备和下一步处置顺序，语气专业、简洁。',
+  },
+  manager: {
+    label: '管理层摘要',
+    description: '突出完成率、产出、资源利用和管理建议，适合汇报。',
+    system:
+      '你是一个制造运营经理助理。请面向管理层输出简洁摘要，突出产出、完成率、资源利用、主要风险和管理动作。',
+  },
+}
+
+export function getDeepSeekConfig() {
+  return {
+    apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY?.trim() ?? '',
+    baseUrl: (import.meta.env.VITE_DEEPSEEK_BASE_URL?.trim() || 'https://api.deepseek.com').replace(/\/$/, ''),
+    model: import.meta.env.VITE_DEEPSEEK_MODEL?.trim() || 'deepseek-v4-flash',
+    proxyUrl: '/api/deepseek/chat/completions',
+    useProxy: import.meta.env.VITE_DEEPSEEK_USE_PROXY !== 'false',
+  }
+}
+
+export function hasDeepSeekApiKey() {
+  return Boolean(getDeepSeekConfig().apiKey)
+}
+
+export function getDeepSeekConnectionLabel() {
+  const config = getDeepSeekConfig()
+
+  if (config.useProxy) {
+    return 'DeepSeek 本地代理'
+  }
+
+  return config.apiKey ? 'DeepSeek 浏览器直连' : 'Mock 流式兜底'
+}
+
+export function buildReportPrompt({ stats, tasks, devices, abnormalTypes, promptMode = 'standard' }) {
+  const profile = promptProfiles[promptMode] ?? promptProfiles.standard
+  const activeTasks = tasks.filter((task) => task.status !== '已完成')
+  const urgentTasks = tasks.filter((task) => task.urgent && task.status !== '已完成')
+  const abnormalTasks = tasks.filter((task) => task.status === '异常')
+  const riskyDevices = devices.filter((device) => device.status === '异常' || device.status === '预警')
+
+  const userPrompt = [
+    '请根据以下 MOM 生产统计数据生成一段 Markdown 格式的生产日报小结。',
+    '',
+    '输出要求：',
+    '- 使用 4 个小标题：整体表现、主要风险、设备情况、下一步建议。',
+    '- 每个小标题下用 1 到 3 条要点。',
+    '- 不要编造不存在的工单、设备或人员。',
+    '- 字数控制在 180 字以内。',
+    '',
+    `提示词模式：${profile.label} - ${profile.description}`,
+    '',
+    '统计指标：',
+    `- 累计产出：${stats.totalOutput} 件`,
+    `- 计划产出：${stats.plannedOutput} 件`,
+    `- 完成率：${stats.completionRate}%`,
+    `- 异常工单数：${stats.abnormalCount}`,
+    `- 平均设备利用率：${stats.deviceUtilization}%`,
+    `- 当前首要风险：${stats.topRisk}`,
+    '',
+    `未完成任务：${activeTasks.map((task) => `${task.id}/${task.product}/${task.status}/${task.progress}%`).join('；') || '无'}`,
+    `加急任务：${urgentTasks.map((task) => task.id).join('、') || '无'}`,
+    `异常任务：${abnormalTasks.map((task) => `${task.id}/${task.abnormalType || '生产异常'}`).join('；') || '无'}`,
+    `风险设备：${riskyDevices.map((device) => `${device.code}/${device.name}/${device.status}/${device.utilization}%`).join('；') || '无'}`,
+    `异常类型：${abnormalTypes.map((item) => `${item.name}${item.value}次`).join('、') || '无'}`,
+  ].join('\n')
+
+  return {
+    system: profile.system,
+    user: userPrompt,
+  }
+}
+
+export async function generateDeepSeekReportSummary({
+  stats,
+  tasks,
+  devices,
+  abnormalTypes,
+  promptMode,
+  onDelta,
+  signal,
+  forceFail = false,
+}) {
+  if (forceFail) {
+    throw new Error('AI 小结生成失败：当前路由启用了失败状态演示。')
+  }
+
+  const prompt = buildReportPrompt({ stats, tasks, devices, abnormalTypes, promptMode })
+  const config = getDeepSeekConfig()
+
+  if (!config.useProxy && !config.apiKey) {
+    return streamMockSummary({ stats, tasks, devices, promptMode, onDelta, signal })
+  }
+
+  let response = await requestDeepSeek({
+    url: config.useProxy ? config.proxyUrl : `${config.baseUrl}/chat/completions`,
+    apiKey: config.useProxy ? '' : config.apiKey,
+    model: config.model,
+    prompt,
+    signal,
+  })
+
+  if (config.useProxy && [404, 501].includes(response.status)) {
+    if (!config.apiKey) {
+      return streamMockSummary({ stats, tasks, devices, promptMode, onDelta, signal })
+    }
+
+    response = await requestDeepSeek({
+      url: `${config.baseUrl}/chat/completions`,
+      apiKey: config.apiKey,
+      model: config.model,
+      prompt,
+      signal,
+    })
+  }
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(`DeepSeek API 请求失败：${response.status} ${detail.slice(0, 120)}`)
+  }
+
+  if (!response.body) {
+    const data = await response.json()
+    const content = data.choices?.[0]?.message?.content ?? ''
+    onDelta?.(content)
+    return content
+  }
+
+  return readSseStream(response.body, onDelta)
+}
+
+function requestDeepSeek({ url, apiKey, model, prompt, signal }) {
+  const headers = {
+    'Content-Type': 'application/json',
+  }
+
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`
+  }
+
+  return fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: prompt.system },
+        { role: 'user', content: prompt.user },
+      ],
+      thinking: { type: 'disabled' },
+      stream: true,
+      temperature: 0.3,
+      max_tokens: 700,
+    }),
+    signal,
+  })
+}
+
+async function readSseStream(body, onDelta) {
+  const reader = body.getReader()
+  const decoder = new TextDecoder('utf-8')
+  let buffer = ''
+  let fullText = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+
+    if (done) {
+      break
+    }
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? ''
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim()
+
+      if (!line.startsWith('data:')) {
+        continue
+      }
+
+      const payload = line.slice(5).trim()
+
+      if (payload === '[DONE]') {
+        return fullText
+      }
+
+      try {
+        const event = JSON.parse(payload)
+        const delta = event.choices?.[0]?.delta?.content ?? ''
+
+        if (delta) {
+          fullText += delta
+          onDelta?.(delta)
+        }
+      } catch {
+        // Ignore incomplete SSE chunks; the next chunk may complete the payload.
+      }
+    }
+  }
+
+  return fullText
+}
+
+async function streamMockSummary({ stats, tasks, devices, promptMode, onDelta, signal }) {
+  const urgentTasks = tasks.filter((task) => task.urgent && task.status !== '已完成')
+  const abnormalDevices = devices.filter((device) => device.status === '异常' || device.status === '预警')
+  const profile = promptProfiles[promptMode] ?? promptProfiles.standard
+  const text = [
+    `### 整体表现\n- 今日累计产出 ${stats.totalOutput} 件，计划 ${stats.plannedOutput} 件，完成率 ${stats.completionRate}%。\n- 当前使用「${profile.label}」提示词模式生成小结。`,
+    `### 主要风险\n- 异常工单 ${stats.abnormalCount} 单，首要风险为 ${stats.topRisk}。\n- 加急未完成工单：${urgentTasks.map((task) => task.id).join('、') || '无'}。`,
+    `### 设备情况\n- 平均设备利用率 ${stats.deviceUtilization}%。\n- 需关注设备：${abnormalDevices.map((device) => `${device.code}${device.status}`).join('、') || '无'}。`,
+    '### 下一步建议\n- 优先复核异常报工和风险设备，再根据产线完成率调整排产节拍。',
+  ].join('\n\n')
+
+  let output = ''
+
+  for (const char of text) {
+    if (signal?.aborted) {
+      throw new DOMException('AI 小结生成已取消', 'AbortError')
+    }
+
+    output += char
+    onDelta?.(char)
+    await new Promise((resolve) => window.setTimeout(resolve, 10))
+  }
+
+  return output
+}

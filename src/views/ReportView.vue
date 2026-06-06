@@ -6,6 +6,14 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { abnormalTypes, buildReportStats, productionTrend } from '../data/mock'
+import {
+  buildReportPrompt,
+  generateDeepSeekReportSummary,
+  getDeepSeekConnectionLabel,
+  getDeepSeekConfig,
+  hasDeepSeekApiKey,
+  promptProfiles,
+} from '../services/deepseekReportService'
 import { productionState } from '../stores/productionStore'
 
 use([CanvasRenderer, LineChart, BarChart, PieChart, GridComponent, LegendComponent, TooltipComponent])
@@ -13,14 +21,22 @@ use([CanvasRenderer, LineChart, BarChart, PieChart, GridComponent, LegendCompone
 const route = useRoute()
 const loading = ref(false)
 const error = ref('')
+const summary = ref('')
+const promptMode = ref('standard')
+const aiSource = ref(getDeepSeekConnectionLabel())
 const stats = computed(() => buildReportStats(productionState.tasks, productionState.devices))
-const summary = ref(route.query.demo === 'ai' ? buildSummary(stats.value) : '')
 const trendChart = ref(null)
 const statusChart = ref(null)
 const deviceChart = ref(null)
 const lineChart = ref(null)
 const abnormalChart = ref(null)
 let chartInstances = []
+let abortController = null
+
+const promptOptions = Object.entries(promptProfiles).map(([value, profile]) => ({
+  value,
+  ...profile,
+}))
 
 const statusData = computed(() =>
   ['待生产', '生产中', '已完成', '异常'].map((status) => ({
@@ -49,32 +65,53 @@ const lineCompletionData = computed(() =>
   }),
 )
 
-function buildSummary(currentStats = stats.value) {
-  const urgentTasks = productionState.tasks.filter((task) => task.urgent && task.status !== '已完成')
-  const abnormalDevices = productionState.devices.filter((device) => device.status === '异常' || device.status === '预警')
-  const riskText =
-    urgentTasks.length > 0
-      ? `${urgentTasks.map((task) => task.id).join('、')} 需要优先跟进`
-      : '当前无加急未完成工单'
+const promptPreview = computed(() =>
+  buildReportPrompt({
+    stats: stats.value,
+    tasks: productionState.tasks,
+    devices: productionState.devices,
+    abnormalTypes,
+    promptMode: promptMode.value,
+  }),
+)
 
-  return `今日累计产出 ${currentStats.totalOutput} 件，整体完成率 ${currentStats.completionRate}%，平均设备利用率 ${currentStats.deviceUtilization}%。主要风险为 ${currentStats.topRisk}，${riskText}。建议先处理 ${abnormalDevices.map((device) => device.code).join('、') || '无异常设备'} 的维护和复核，再保持 A/B 产线节拍稳定。`
-}
+const renderedSummary = computed(() => renderMarkdown(summary.value))
+const deepSeekConfig = computed(() => getDeepSeekConfig())
 
-function generateSummary() {
+async function generateSummary() {
   loading.value = true
   error.value = ''
   summary.value = ''
+  aiSource.value = `${getDeepSeekConnectionLabel()} · ${deepSeekConfig.value.model}`
+  abortController?.abort()
+  abortController = new AbortController()
 
-  window.setTimeout(() => {
-    loading.value = false
-
-    if (route.query.fail === '1') {
-      error.value = 'AI 小结生成失败：当前演示环境未配置真实模型接口，请稍后重试或查看 mock 兜底结果。'
-      return
+  try {
+    await generateDeepSeekReportSummary({
+      stats: stats.value,
+      tasks: productionState.tasks,
+      devices: productionState.devices,
+      abnormalTypes,
+      promptMode: promptMode.value,
+      forceFail: route.query.fail === '1',
+      signal: abortController.signal,
+      onDelta(delta) {
+        summary.value += delta
+      },
+    })
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      error.value = 'AI 小结生成已取消。'
+    } else {
+      error.value = err.message || 'AI 小结生成失败，请检查 API Key、网络或模型配置。'
     }
+  } finally {
+    loading.value = false
+  }
+}
 
-    summary.value = buildSummary()
-  }, 650)
+function cancelSummary() {
+  abortController?.abort()
 }
 
 function renderCharts() {
@@ -223,6 +260,63 @@ function resizeCharts() {
   chartInstances.forEach((chart) => chart.resize())
 }
 
+function renderMarkdown(value) {
+  const escaped = escapeHtml(value)
+  const lines = escaped.split('\n')
+  let html = ''
+  let inList = false
+
+  for (const line of lines) {
+    if (line.startsWith('### ')) {
+      if (inList) {
+        html += '</ul>'
+        inList = false
+      }
+
+      html += `<h3>${line.slice(4)}</h3>`
+      continue
+    }
+
+    if (line.startsWith('- ')) {
+      if (!inList) {
+        html += '<ul>'
+        inList = true
+      }
+
+      html += `<li>${formatInlineMarkdown(line.slice(2))}</li>`
+      continue
+    }
+
+    if (line.trim()) {
+      if (inList) {
+        html += '</ul>'
+        inList = false
+      }
+
+      html += `<p>${formatInlineMarkdown(line)}</p>`
+    }
+  }
+
+  if (inList) {
+    html += '</ul>'
+  }
+
+  return html
+}
+
+function formatInlineMarkdown(value) {
+  return value.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 onMounted(async () => {
   await nextTick()
   renderCharts()
@@ -235,6 +329,7 @@ watch(chartVersion, async () => {
 })
 
 onBeforeUnmount(() => {
+  abortController?.abort()
   window.removeEventListener('resize', resizeCharts)
   chartInstances.forEach((chart) => chart.dispose())
   chartInstances = []
@@ -249,7 +344,7 @@ onBeforeUnmount(() => {
           <p class="eyebrow">Production Analytics</p>
           <h2>生产报表 / 统计</h2>
         </div>
-        <span>模拟统计数据 + ECharts + AI 小结</span>
+        <span>模拟统计数据 + ECharts + DeepSeek AI</span>
       </div>
 
       <div class="report-kpis">
@@ -318,22 +413,43 @@ onBeforeUnmount(() => {
       </article>
     </section>
 
-    <section class="panel">
+    <section class="panel ai-panel">
       <div class="section-title">
-        <h2>AI 报表小结</h2>
-        <button :disabled="loading" @click="generateSummary">
-          {{ loading ? '正在生成...' : 'AI 生成分析小结' }}
-        </button>
+        <div>
+          <h2>AI 报表小结</h2>
+          <span>{{ aiSource }}</span>
+        </div>
+        <div class="ai-actions">
+          <select v-model="promptMode" :disabled="loading" aria-label="Prompt 模式">
+            <option v-for="item in promptOptions" :key="item.value" :value="item.value">
+              {{ item.label }}
+            </option>
+          </select>
+          <button type="button" :disabled="loading" @click="generateSummary">
+            {{ loading ? '流式生成中...' : 'AI 生成分析小结' }}
+          </button>
+          <button v-if="loading" type="button" class="secondary-button" @click="cancelSummary">取消</button>
+        </div>
       </div>
+
+      <div class="ai-meta">
+        <span>模型：{{ deepSeekConfig.model }}</span>
+        <span>Base URL：{{ deepSeekConfig.baseUrl }}</span>
+        <span>{{ hasDeepSeekApiKey() ? '已配置浏览器直连 Key' : '推荐使用本地代理环境变量 DEEPSEEK_API_KEY' }}</span>
+      </div>
+
       <p v-if="error" class="feedback error">{{ error }}</p>
-      <article v-if="summary" class="ai-summary">
-        <strong>AI 生产日报小结</strong>
-        <span>{{ summary }}</span>
-      </article>
+      <article v-if="summary" class="ai-summary markdown-summary" v-html="renderedSummary"></article>
       <article v-if="!summary && !loading && !error" class="panel-inline">
         <strong>等待生成</strong>
-        <span>点击按钮后会根据当前工单、设备利用率和异常数据生成一段生产日报说明。</span>
+        <span>点击按钮后会优先通过本地代理调用 DeepSeek API；未配置 Key 时自动使用 mock 流式兜底，仍可展示打字机效果。</span>
       </article>
+
+      <details class="prompt-preview">
+        <summary>查看当前 Prompt 设计</summary>
+        <pre>{{ promptPreview.system }}</pre>
+        <pre>{{ promptPreview.user }}</pre>
+      </details>
     </section>
   </section>
 </template>

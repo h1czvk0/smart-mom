@@ -655,6 +655,81 @@ td small {
   line-height: 1.7;
 }
 
+.ai-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.ai-actions {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.ai-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai-meta span {
+  padding: 6px 9px;
+  border: 1px solid #1f3a55;
+  border-radius: 999px;
+  color: #9fb2c6;
+  background: #091827;
+  font-size: 13px;
+}
+
+.markdown-summary {
+  display: block;
+}
+
+.markdown-summary h3 {
+  margin: 12px 0 6px;
+  color: #67e8f9;
+  font-size: 17px;
+}
+
+.markdown-summary h3:first-child {
+  margin-top: 0;
+}
+
+.markdown-summary p {
+  margin: 8px 0;
+}
+
+.markdown-summary ul {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+
+.prompt-preview {
+  border: 1px solid #1f3a55;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #091827;
+}
+
+.prompt-preview summary {
+  color: #67e8f9;
+  cursor: pointer;
+}
+
+.prompt-preview pre {
+  overflow: auto;
+  max-height: 240px;
+  margin: 12px 0 0;
+  padding: 12px;
+  border-radius: 6px;
+  color: #cbd5e1;
+  background: #07111f;
+  white-space: pre-wrap;
+}
+
 .detail-summary,
 .report-kpis {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -982,7 +1057,8 @@ td small {
   .filter-row,
   .task-filter-row,
   .report-form,
-  .timeline {
+  .timeline,
+  .ai-actions {
     grid-template-columns: 1fr;
   }
 
