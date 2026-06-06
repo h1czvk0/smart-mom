@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { isLightTheme, toggleTheme } from '../../stores/themeStore'
 
 const router = useRouter()
 const searchText = ref('')
@@ -35,6 +36,9 @@ function submitSearch() {
     <form class="topbar-actions" @submit.prevent="submitSearch">
       <input v-model="searchText" type="search" placeholder="搜索工单、设备、产线" aria-label="搜索" />
       <button type="submit" class="secondary-button">搜索</button>
+      <button type="button" class="theme-toggle" @click="toggleTheme">
+        {{ isLightTheme ? '深色' : '浅色' }}
+      </button>
       <span>{{ today }}</span>
       <strong>实训用户</strong>
     </form>
