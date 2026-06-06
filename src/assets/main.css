@@ -118,7 +118,7 @@ textarea {
   text-decoration: none;
 }
 
-.sidebar a.router-link-active {
+.sidebar a.is-active {
   color: #07111f;
   background: #67e8f9;
 }

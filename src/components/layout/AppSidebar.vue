@@ -1,13 +1,26 @@
 <script setup>
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 
+const route = useRoute()
 const menus = [
-  { path: '/dashboard', label: '控制台首页' },
-  { path: '/tasks', label: '生产任务' },
-  { path: '/tasks?keyword=异常', label: '异常跟进' },
-  { path: '/devices', label: '设备工序' },
-  { path: '/reports', label: '生产报表' },
+  { to: '/dashboard', label: '控制台首页', name: 'dashboard' },
+  { to: '/tasks', label: '生产任务', name: 'tasks' },
+  { to: { path: '/tasks', query: { keyword: '异常' } }, label: '异常跟进', name: 'abnormal' },
+  { to: '/devices', label: '设备工序', name: 'devices' },
+  { to: '/reports', label: '生产报表', name: 'reports' },
 ]
+
+function isActive(item) {
+  if (item.name === 'tasks') {
+    return route.path === '/tasks' && !route.query.keyword
+  }
+
+  if (item.name === 'abnormal') {
+    return route.path === '/tasks' && route.query.keyword === '异常'
+  }
+
+  return route.path === item.to
+}
 </script>
 
 <template>
@@ -20,7 +33,7 @@ const menus = [
       </div>
     </div>
     <nav>
-      <RouterLink v-for="item in menus" :key="item.path" :to="item.path">
+      <RouterLink v-for="item in menus" :key="item.name" :class="{ 'is-active': isActive(item) }" :to="item.to">
         {{ item.label }}
       </RouterLink>
     </nav>
