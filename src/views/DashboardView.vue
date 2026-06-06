@@ -41,13 +41,13 @@ import { kpis, tasks } from '../data/mock'
         </thead>
         <tbody>
           <tr v-for="task in tasks" :key="task.id">
-            <td>{{ task.id }}</td>
-            <td>{{ task.product }}</td>
-            <td>{{ task.line }}</td>
-            <td>
+            <td data-label="工单号">{{ task.id }}</td>
+            <td data-label="产品">{{ task.product }}</td>
+            <td data-label="产线">{{ task.line }}</td>
+            <td data-label="状态">
               <span class="status-tag">{{ task.status }}</span>
             </td>
-            <td>
+            <td data-label="进度">
               <div class="progress-bar"><span :style="{ width: `${task.progress}%` }"></span></div>
             </td>
           </tr>

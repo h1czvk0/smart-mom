@@ -9,6 +9,7 @@ body {
   min-width: 320px;
   color: #e7eef8;
   background: #07111f;
+  -webkit-text-size-adjust: 100%;
   font-family:
     Inter,
     'Microsoft YaHei',
@@ -17,6 +18,16 @@ body {
     -apple-system,
     BlinkMacSystemFont,
     sans-serif;
+}
+
+#app {
+  min-width: 0;
+}
+
+img,
+svg {
+  max-width: 100%;
+  height: auto;
 }
 
 button,
@@ -58,6 +69,7 @@ textarea {
 }
 
 .sidebar {
+  min-width: 0;
   padding: 24px 18px;
   background: #081726;
   border-right: 1px solid #17314a;
@@ -113,6 +125,7 @@ textarea {
 .footer,
 .panel,
 .kpi-card {
+  min-width: 0;
   border: 1px solid #17314a;
   border-radius: 8px;
   background: #0b1b2b;
@@ -131,6 +144,16 @@ textarea {
 .section-title h2 {
   margin: 0;
   letter-spacing: 0;
+}
+
+.topbar h1 {
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.section-title h2 {
+  font-size: 22px;
 }
 
 .eyebrow {
@@ -327,10 +350,12 @@ td {
 .task-card,
 .device-grid article,
 .chart-placeholder {
+  min-width: 0;
   border: 1px solid #1f3a55;
   border-radius: 8px;
   padding: 16px;
   background: #091827;
+  overflow-wrap: anywhere;
 }
 
 .task-card span,
@@ -418,6 +443,16 @@ td {
   font-size: 13px;
 }
 
+@media (max-width: 1280px) {
+  .kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+
+  .page-grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.9fr);
+  }
+}
+
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -427,6 +462,8 @@ td {
     position: sticky;
     top: 0;
     z-index: 10;
+    padding: 16px;
+    overflow: hidden;
   }
 
   .sidebar nav {
@@ -451,5 +488,138 @@ td {
 
   .line-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace {
+    padding: 14px;
+  }
+
+  .brand {
+    margin-bottom: 14px;
+  }
+
+  .sidebar nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .sidebar nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sidebar a {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .topbar {
+    padding: 16px;
+  }
+
+  .topbar h1 {
+    font-size: 22px;
+  }
+
+  .topbar-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .section-title {
+    display: grid;
+    align-items: start;
+  }
+
+  .section-title h2 {
+    font-size: 19px;
+  }
+
+  .kpi-card strong {
+    font-size: 26px;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td {
+    display: block;
+  }
+
+  thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  tbody tr {
+    margin-bottom: 12px;
+    border: 1px solid #1f3a55;
+    border-radius: 8px;
+    background: #091827;
+  }
+
+  td {
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+  }
+
+  td::before {
+    content: attr(data-label);
+    color: #91a4b8;
+  }
+
+  .chart-placeholder {
+    min-height: 210px;
+    padding: 16px;
+    line-height: 1.7;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar,
+  .panel,
+  .topbar,
+  .kpi-card {
+    border-radius: 6px;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brand small {
+    display: none;
+  }
+
+  .topbar h1 {
+    font-size: 20px;
+  }
+
+  .task-cards,
+  .device-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .line-track {
+    flex-wrap: wrap;
   }
 }
