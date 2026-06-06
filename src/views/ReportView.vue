@@ -18,6 +18,8 @@ const summary = ref(route.query.demo === 'ai' ? buildSummary(stats.value) : '')
 const trendChart = ref(null)
 const statusChart = ref(null)
 const deviceChart = ref(null)
+const lineChart = ref(null)
+const abnormalChart = ref(null)
 let chartInstances = []
 
 const statusData = computed(() =>
@@ -32,6 +34,19 @@ const chartVersion = computed(() =>
     productionState.tasks.map((task) => `${task.id}:${task.status}:${task.finishedQty}`).join('|'),
     productionState.devices.map((device) => `${device.code}:${device.status}:${device.utilization}`).join('|'),
   ].join('::'),
+)
+
+const lineCompletionData = computed(() =>
+  ['A 产线', 'B 产线', 'C 产线', 'D 产线'].map((line) => {
+    const lineTasks = productionState.tasks.filter((task) => task.line === line)
+    const planned = lineTasks.reduce((sum, task) => sum + task.planQty, 0)
+    const finished = lineTasks.reduce((sum, task) => sum + task.finishedQty, 0)
+
+    return {
+      line,
+      rate: planned === 0 ? 0 : Math.round((finished / planned) * 100),
+    }
+  }),
 )
 
 function buildSummary(currentStats = stats.value) {
@@ -63,15 +78,23 @@ function generateSummary() {
 }
 
 function renderCharts() {
-  if (!trendChart.value || !statusChart.value || !deviceChart.value) {
+  if (!trendChart.value || !statusChart.value || !deviceChart.value || !lineChart.value || !abnormalChart.value) {
     return
   }
 
   if (chartInstances.length === 0) {
-    chartInstances = [init(trendChart.value), init(statusChart.value), init(deviceChart.value)]
+    chartInstances = [
+      init(trendChart.value),
+      init(statusChart.value),
+      init(deviceChart.value),
+      init(lineChart.value),
+      init(abnormalChart.value),
+    ]
   }
 
   chartInstances[0].setOption({
+    animationDuration: 900,
+    animationEasing: 'cubicOut',
     color: ['#5eead4', '#f59e0b'],
     tooltip: { trigger: 'axis' },
     legend: { textStyle: { color: '#9fb2c6' } },
@@ -104,6 +127,8 @@ function renderCharts() {
   })
 
   chartInstances[1].setOption({
+    animationDuration: 1000,
+    animationEasing: 'quarticOut',
     color: ['#94a3b8', '#38bdf8', '#22c55e', '#ef4444'],
     tooltip: { trigger: 'item' },
     legend: { bottom: 0, textStyle: { color: '#9fb2c6' } },
@@ -120,6 +145,8 @@ function renderCharts() {
   })
 
   chartInstances[2].setOption({
+    animationDuration: 900,
+    animationEasing: 'cubicOut',
     color: ['#67e8f9'],
     tooltip: { trigger: 'axis' },
     grid: { left: 48, right: 18, top: 22, bottom: 42 },
@@ -141,6 +168,52 @@ function renderCharts() {
         type: 'bar',
         barWidth: 16,
         data: productionState.devices.map((device) => device.utilization),
+      },
+    ],
+  })
+
+  chartInstances[3].setOption({
+    animationDuration: 900,
+    animationEasing: 'cubicOut',
+    color: ['#22c55e'],
+    tooltip: { trigger: 'axis' },
+    grid: { left: 48, right: 18, top: 24, bottom: 42 },
+    xAxis: {
+      type: 'category',
+      data: lineCompletionData.value.map((item) => item.line),
+      axisLabel: { color: '#9fb2c6' },
+      axisLine: { lineStyle: { color: '#27445f' } },
+    },
+    yAxis: {
+      type: 'value',
+      max: 100,
+      axisLabel: { color: '#9fb2c6', formatter: '{value}%' },
+      splitLine: { lineStyle: { color: '#17314a' } },
+    },
+    series: [
+      {
+        name: '完成率',
+        type: 'bar',
+        barWidth: 28,
+        data: lineCompletionData.value.map((item) => item.rate),
+      },
+    ],
+  })
+
+  chartInstances[4].setOption({
+    animationDuration: 1000,
+    animationEasing: 'quarticOut',
+    color: ['#ef4444', '#f59e0b', '#8b5cf6'],
+    tooltip: { trigger: 'item' },
+    legend: { bottom: 0, textStyle: { color: '#9fb2c6' } },
+    series: [
+      {
+        name: '异常类型',
+        type: 'pie',
+        radius: ['38%', '66%'],
+        center: ['50%', '43%'],
+        label: { color: '#dbeafe' },
+        data: abnormalTypes,
       },
     ],
   })
@@ -230,14 +303,18 @@ onBeforeUnmount(() => {
 
       <article class="panel chart-card">
         <div class="section-title compact-title">
-          <h2>异常类型</h2>
+          <h2>产线完成率</h2>
+          <span>A / B / C / D</span>
+        </div>
+        <div ref="lineChart" class="chart-box"></div>
+      </article>
+
+      <article class="panel chart-card">
+        <div class="section-title compact-title">
+          <h2>异常类型分布</h2>
           <span>{{ abnormalTypes.length }} 类风险</span>
         </div>
-        <ul class="alert-list">
-          <li v-for="item in abnormalTypes" :key="item.name">
-            {{ item.name }}：{{ item.value }} 次
-          </li>
-        </ul>
+        <div ref="abnormalChart" class="chart-box"></div>
       </article>
     </section>
 

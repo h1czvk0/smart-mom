@@ -10,7 +10,11 @@ import AppSidebar from './components/layout/AppSidebar.vue'
     <AppSidebar />
     <main class="workspace">
       <AppHeader />
-      <RouterView />
+      <RouterView v-slot="{ Component, route }">
+        <Transition name="page-fade" mode="out-in">
+          <component :is="Component" :key="route.fullPath" />
+        </Transition>
+      </RouterView>
       <AppFooter />
     </main>
   </div>
