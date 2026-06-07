@@ -1,4 +1,5 @@
 <script setup>
+import MarkdownIt from 'markdown-it'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { abnormalTypes, buildReportStats } from '../data/mock'
 import {
@@ -11,6 +12,13 @@ import {
   streamDeepSeekMessages,
 } from '../services/deepseekReportService'
 import { productionState } from '../stores/productionStore'
+
+const markdown = new MarkdownIt({
+  breaks: true,
+  html: false,
+  linkify: true,
+  typographer: false,
+})
 
 const chatProfiles = {
   dispatch: {
@@ -287,60 +295,7 @@ function buildBusinessContext() {
 }
 
 function renderMarkdown(value) {
-  const escaped = escapeHtml(value)
-  const lines = escaped.split('\n')
-  let html = ''
-  let inList = false
-
-  for (const line of lines) {
-    if (line.startsWith('### ')) {
-      if (inList) {
-        html += '</ul>'
-        inList = false
-      }
-
-      html += `<h3>${line.slice(4)}</h3>`
-      continue
-    }
-
-    if (line.startsWith('- ')) {
-      if (!inList) {
-        html += '<ul>'
-        inList = true
-      }
-
-      html += `<li>${formatInlineMarkdown(line.slice(2))}</li>`
-      continue
-    }
-
-    if (line.trim()) {
-      if (inList) {
-        html += '</ul>'
-        inList = false
-      }
-
-      html += `<p>${formatInlineMarkdown(line)}</p>`
-    }
-  }
-
-  if (inList) {
-    html += '</ul>'
-  }
-
-  return html
-}
-
-function formatInlineMarkdown(value) {
-  return value.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-}
-
-function escapeHtml(value) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
+  return markdown.render(value)
 }
 
 onBeforeUnmount(() => {
