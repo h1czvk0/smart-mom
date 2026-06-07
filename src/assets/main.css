@@ -80,6 +80,13 @@ textarea {
   grid-template-columns: 248px minmax(0, 1fr);
 }
 
+@media (min-width: 981px) {
+  .app-shell:has(.sidebar:hover),
+  .app-shell:has(.sidebar:focus-within) {
+    grid-template-columns: 248px minmax(0, 1fr);
+  }
+}
+
 .sidebar {
   position: sticky;
   top: 0;
@@ -1000,6 +1007,13 @@ td small {
 
 .ai-chat-shell.workbar-pinned {
   grid-template-columns: 260px minmax(0, 1fr);
+}
+
+@media (min-width: 981px) {
+  .ai-chat-shell:has(.ai-workbar:hover),
+  .ai-chat-shell:has(.ai-workbar:focus-within) {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
 }
 
 .ai-workspace .ai-chat-shell {
