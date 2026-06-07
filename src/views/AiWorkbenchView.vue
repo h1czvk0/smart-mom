@@ -51,7 +51,8 @@ const messages = ref([
   {
     id: 1,
     role: 'assistant',
-    content: '### 可以开始提问\n- 我会基于当前 MOM 工单、设备和报表数据回答。',
+    content:
+      '### 你好，我是你的智能助手\n- 我可以帮你梳理异常工单、加急任务、设备风险和班组处置顺序。\n- 直接把问题发给我，我会结合当前 MOM 数据给出可执行建议。',
   },
 ])
 const comparisonItems = ref(buildComparisonItems())
@@ -61,7 +62,7 @@ let abortController = null
 let comparisonAbortController = null
 
 const workspaceTools = [
-  { value: 'chat', label: '智能对话' },
+  { value: 'chat', label: '对话' },
   { value: 'context', label: '业务上下文' },
   { value: 'prompt', label: 'Prompt' },
   { value: 'compare', label: '提示词对比' },
@@ -89,7 +90,7 @@ const currentPromptPreview = computed(() => [
   contextPreview.value,
 ].join('\n'))
 const deepSeekConfig = computed(() => getDeepSeekConfig())
-const workspaceTitle = computed(() => workspaceTools.find((tool) => tool.value === activeTool.value)?.label ?? '智能对话')
+const workspaceTitle = computed(() => workspaceTools.find((tool) => tool.value === activeTool.value)?.label ?? '对话')
 
 async function sendMessage() {
   const content = input.value.trim()
@@ -176,7 +177,7 @@ function clearMessages() {
     {
       id: messageId++,
       role: 'assistant',
-      content: '### 已清空上下文\n- 可以重新选择 Prompt 模式并开始新的多轮对话。',
+      content: '### 已开启新的对话\n- 你可以继续问我工单、设备、异常或报表相关的问题。',
     },
   ]
 }
@@ -306,7 +307,7 @@ onBeforeUnmount(() => {
   <section class="ai-chat-shell">
     <aside class="ai-workbar">
       <div class="ai-workbar-head">
-        <strong>AI 工作台</strong>
+        <strong>智能助手</strong>
         <button type="button" class="icon-button" title="新对话" @click="clearMessages">+</button>
       </div>
 
@@ -347,7 +348,7 @@ onBeforeUnmount(() => {
     <section class="ai-chat-main">
       <header class="ai-chat-header">
         <div>
-          <p class="eyebrow">AI Workbench</p>
+          <p class="eyebrow">Smart Assistant</p>
           <h2>{{ workspaceTitle }}</h2>
           <span v-if="activeTool === 'chat'">{{ activeProfile.description }}</span>
         </div>
