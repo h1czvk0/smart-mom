@@ -129,8 +129,6 @@ async function sendMessage() {
   try {
     await streamDeepSeekMessages({
       messages: buildChatMessages(),
-      maxTokens: 2400,
-      maxContinuations: 2,
       temperature: 0.25,
       signal: abortController.signal,
       onDelta(delta) {

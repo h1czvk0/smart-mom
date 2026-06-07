@@ -103,7 +103,6 @@ export async function generateDeepSeekReportSummary({
       { role: 'system', content: prompt.system },
       { role: 'user', content: prompt.user },
     ],
-    maxTokens: 700,
     temperature: 0.3,
     signal,
     onDelta,
@@ -114,8 +113,6 @@ export async function streamDeepSeekMessages({
   messages,
   onDelta,
   signal,
-  maxTokens = 800,
-  maxContinuations = 1,
   temperature = 0.3,
   forceFail = false,
 }) {
@@ -132,12 +129,11 @@ export async function streamDeepSeekMessages({
   let fullText = ''
   let requestMessages = messages
 
-  for (let continuation = 0; continuation <= maxContinuations; continuation += 1) {
+  while (true) {
     const response = await requestWithFallback({
       config,
       messages: requestMessages,
       signal,
-      maxTokens,
       temperature,
     })
     const result = response.body
@@ -146,7 +142,7 @@ export async function streamDeepSeekMessages({
 
     fullText += result.content
 
-    if (result.finishReason !== 'length' || continuation === maxContinuations) {
+    if (result.finishReason !== 'length') {
       return fullText
     }
 
@@ -159,18 +155,15 @@ export async function streamDeepSeekMessages({
       },
     ]
   }
-
-  return fullText
 }
 
-async function requestWithFallback({ config, messages, signal, maxTokens, temperature }) {
+async function requestWithFallback({ config, messages, signal, temperature }) {
   let response = await requestDeepSeek({
     url: config.useProxy ? config.proxyUrl : `${config.baseUrl}/chat/completions`,
     apiKey: config.useProxy ? '' : config.apiKey,
     model: config.model,
     messages,
     signal,
-    maxTokens,
     temperature,
   })
 
@@ -186,7 +179,6 @@ async function requestWithFallback({ config, messages, signal, maxTokens, temper
       model: config.model,
       messages,
       signal,
-      maxTokens,
       temperature,
     })
   }
@@ -211,7 +203,7 @@ async function readJsonResponse(response, onDelta) {
   }
 }
 
-function requestDeepSeek({ url, apiKey, model, messages, signal, maxTokens, temperature }) {
+function requestDeepSeek({ url, apiKey, model, messages, signal, temperature }) {
   const headers = {
     'Content-Type': 'application/json',
   }
@@ -229,7 +221,6 @@ function requestDeepSeek({ url, apiKey, model, messages, signal, maxTokens, temp
       thinking: { type: 'disabled' },
       stream: true,
       temperature,
-      max_tokens: maxTokens,
     }),
     signal,
   })
