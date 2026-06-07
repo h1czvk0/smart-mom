@@ -2,7 +2,6 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import vueDevTools from 'vite-plugin-vue-devtools'
 
 function deepSeekProxy(env) {
   return {
@@ -72,11 +71,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
-    plugins: [
-      vue(),
-      vueDevTools(),
-      deepSeekProxy(env),
-    ],
+    plugins: [vue(), deepSeekProxy(env)],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))
