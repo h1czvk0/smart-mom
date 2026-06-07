@@ -6,6 +6,7 @@ const routes = [
   '/tasks?keyword=异常',
   '/tasks/WO-20260606-001',
   '/devices',
+  '/ai',
   '/reports',
   '/missing-route',
 ]

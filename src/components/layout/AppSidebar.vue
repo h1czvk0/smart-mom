@@ -7,6 +7,7 @@ const menus = [
   { to: '/tasks', label: '生产任务', name: 'tasks' },
   { to: { path: '/tasks', query: { keyword: '异常' } }, label: '异常跟进', name: 'abnormal' },
   { to: '/devices', label: '设备工序', name: 'devices' },
+  { to: '/ai', label: 'AI 工作台', name: 'ai' },
   { to: '/reports', label: '生产报表', name: 'reports' },
 ]
 

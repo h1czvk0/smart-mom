@@ -97,31 +97,62 @@ export async function generateDeepSeekReportSummary({
   }
 
   const prompt = buildReportPrompt({ stats, tasks, devices, abnormalTypes, promptMode })
+
+  return streamDeepSeekMessages({
+    messages: [
+      { role: 'system', content: prompt.system },
+      { role: 'user', content: prompt.user },
+    ],
+    maxTokens: 700,
+    temperature: 0.3,
+    signal,
+    onDelta,
+    mockStream: () => streamMockSummary({ stats, tasks, devices, promptMode, onDelta, signal }),
+  })
+}
+
+export async function streamDeepSeekMessages({
+  messages,
+  onDelta,
+  signal,
+  maxTokens = 800,
+  temperature = 0.3,
+  forceFail = false,
+  mockStream,
+}) {
+  if (forceFail) {
+    throw new Error('AI 请求失败演示：当前操作用于验证失败状态提示。')
+  }
+
   const config = getDeepSeekConfig()
 
   if (!config.useProxy && !config.apiKey) {
-    return streamMockSummary({ stats, tasks, devices, promptMode, onDelta, signal })
+    return mockStream ? mockStream() : streamMockChat({ messages, onDelta, signal })
   }
 
   let response = await requestDeepSeek({
     url: config.useProxy ? config.proxyUrl : `${config.baseUrl}/chat/completions`,
     apiKey: config.useProxy ? '' : config.apiKey,
     model: config.model,
-    prompt,
+    messages,
     signal,
+    maxTokens,
+    temperature,
   })
 
   if (config.useProxy && [404, 501].includes(response.status)) {
     if (!config.apiKey) {
-      return streamMockSummary({ stats, tasks, devices, promptMode, onDelta, signal })
+      return mockStream ? mockStream() : streamMockChat({ messages, onDelta, signal })
     }
 
     response = await requestDeepSeek({
       url: `${config.baseUrl}/chat/completions`,
       apiKey: config.apiKey,
       model: config.model,
-      prompt,
+      messages,
       signal,
+      maxTokens,
+      temperature,
     })
   }
 
@@ -140,7 +171,7 @@ export async function generateDeepSeekReportSummary({
   return readSseStream(response.body, onDelta)
 }
 
-function requestDeepSeek({ url, apiKey, model, prompt, signal }) {
+function requestDeepSeek({ url, apiKey, model, messages, signal, maxTokens, temperature }) {
   const headers = {
     'Content-Type': 'application/json',
   }
@@ -154,14 +185,11 @@ function requestDeepSeek({ url, apiKey, model, prompt, signal }) {
     headers,
     body: JSON.stringify({
       model,
-      messages: [
-        { role: 'system', content: prompt.system },
-        { role: 'user', content: prompt.user },
-      ],
+      messages,
       thinking: { type: 'disabled' },
       stream: true,
-      temperature: 0.3,
-      max_tokens: 700,
+      temperature,
+      max_tokens: maxTokens,
     }),
     signal,
   })
@@ -230,6 +258,35 @@ async function streamMockSummary({ stats, tasks, devices, promptMode, onDelta, s
   for (const char of text) {
     if (signal?.aborted) {
       throw new DOMException('AI 小结生成已取消', 'AbortError')
+    }
+
+    output += char
+    onDelta?.(char)
+    await new Promise((resolve) => window.setTimeout(resolve, 10))
+  }
+
+  return output
+}
+
+async function streamMockChat({ messages, onDelta, signal }) {
+  const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content ?? ''
+  const text = [
+    '### AI 处理建议',
+    `- 已接收你的问题：${latestUserMessage.slice(0, 80) || '请补充生产问题'}`,
+    '- 当前为 Mock 流式兜底，真实环境会优先调用 DeepSeek / OpenAI 兼容接口。',
+    '- 建议先核对异常工单、加急任务和风险设备，再安排责任人闭环。',
+    '',
+    '### 下一步动作',
+    '- 在生产任务页确认工单状态。',
+    '- 在设备工序页检查预警设备。',
+    '- 在生产报表页生成管理层摘要。',
+  ].join('\n')
+
+  let output = ''
+
+  for (const char of text) {
+    if (signal?.aborted) {
+      throw new DOMException('AI 对话已取消', 'AbortError')
     }
 
     output += char

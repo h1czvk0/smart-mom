@@ -17,6 +17,7 @@ const router = createRouter({
       name: 'devices',
       component: () => import('../views/DeviceProcessView.vue'),
     },
+    { path: '/ai', name: 'ai', component: () => import('../views/AiWorkbenchView.vue') },
     { path: '/reports', name: 'reports', component: () => import('../views/ReportView.vue') },
     {
       path: '/:pathMatch(.*)*',

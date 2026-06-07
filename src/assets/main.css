@@ -737,6 +737,232 @@ td small {
   white-space: pre-wrap;
 }
 
+.ai-workbench {
+  display: grid;
+  gap: 18px;
+}
+
+.ai-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.ai-hero h2 {
+  margin: 4px 0 6px;
+  font-size: 28px;
+}
+
+.ai-hero span,
+.prompt-card p {
+  color: #9fb2c6;
+}
+
+.ai-state-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ai-state-strip span,
+.ai-state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: #cbd5e1;
+  background: #102338;
+  white-space: nowrap;
+}
+
+.state-loading {
+  color: #cffafe;
+  background: #155e75;
+}
+
+.state-success {
+  color: #dcfce7;
+  background: #166534;
+}
+
+.state-error {
+  color: #fee2e2;
+  background: #991b1b;
+}
+
+.state-idle {
+  color: #dbeafe;
+  background: #334155;
+}
+
+.ai-workbench-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.8fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.ai-chat-panel,
+.ai-side-stack,
+.prompt-compare-panel {
+  min-width: 0;
+}
+
+.ai-side-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.chat-feed {
+  display: grid;
+  gap: 12px;
+  max-height: 560px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.chat-bubble {
+  width: min(86%, 760px);
+  border: 1px solid #1f3a55;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #091827;
+}
+
+.chat-bubble > span {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: #67e8f9;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chat-bubble.user {
+  justify-self: end;
+  border-color: #0e7490;
+  background: #123456;
+}
+
+.chat-bubble.user > span {
+  color: #dbeafe;
+}
+
+.chat-bubble.assistant {
+  justify-self: start;
+}
+
+.chat-bubble.typing {
+  width: max-content;
+}
+
+.typing-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.typing-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #67e8f9;
+  animation: typing-bounce 900ms ease-in-out infinite;
+}
+
+.typing-dots i:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.typing-dots i:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+.chat-composer {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.danger-button {
+  color: #fee2e2;
+  background: #7f1d1d;
+}
+
+.requirement-list {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.requirement-list li {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #1f3a55;
+  border-radius: 8px;
+  background: #091827;
+}
+
+.requirement-list span,
+.context-cards span,
+.prompt-card span {
+  color: #9fb2c6;
+}
+
+.context-cards,
+.prompt-compare-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.context-cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.context-cards article,
+.prompt-card {
+  min-width: 0;
+  border: 1px solid #1f3a55;
+  border-radius: 8px;
+  padding: 14px;
+  background: #091827;
+}
+
+.context-cards strong {
+  display: block;
+  margin-top: 8px;
+  color: #ffffff;
+  font-size: 24px;
+}
+
+.prompt-compare-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.prompt-card {
+  display: grid;
+  gap: 10px;
+}
+
+.prompt-card > small {
+  width: max-content;
+}
+
+.compact-prompt {
+  margin-top: 0;
+}
+
 .detail-summary,
 .report-kpis {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -963,6 +1189,19 @@ td small {
   }
 }
 
+@keyframes typing-bounce {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -998,6 +1237,11 @@ td small {
 [data-theme='light'] .detail-summary span,
 [data-theme='light'] .report-kpis span,
 [data-theme='light'] .ai-meta span,
+[data-theme='light'] .ai-hero span,
+[data-theme='light'] .requirement-list span,
+[data-theme='light'] .context-cards span,
+[data-theme='light'] .prompt-card span,
+[data-theme='light'] .prompt-card p,
 [data-theme='light'] .device-detail dt {
   color: #5d6d82;
 }
@@ -1058,9 +1302,44 @@ td small {
 [data-theme='light'] .ai-summary,
 [data-theme='light'] .ai-meta span,
 [data-theme='light'] .prompt-preview,
+[data-theme='light'] .chat-bubble,
+[data-theme='light'] .requirement-list li,
+[data-theme='light'] .context-cards article,
+[data-theme='light'] .prompt-card,
 [data-theme='light'] tbody tr {
   border-color: #d4e0ea;
   background: #f8fbfd;
+}
+
+[data-theme='light'] .chat-bubble.user {
+  border-color: #67ddeb;
+  background: #e0f7fb;
+}
+
+[data-theme='light'] .ai-state-strip span,
+[data-theme='light'] .ai-state {
+  color: #1e344f;
+  background: #dbe8f1;
+}
+
+[data-theme='light'] .state-loading {
+  color: #155e75;
+  background: #cffafe;
+}
+
+[data-theme='light'] .state-success {
+  color: #166534;
+  background: #dcfce7;
+}
+
+[data-theme='light'] .state-error {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+[data-theme='light'] .danger-button {
+  color: #ffffff;
+  background: #b42318;
 }
 
 [data-theme='light'] .prompt-preview pre {
@@ -1202,13 +1481,23 @@ td small {
   }
 
   .sidebar nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
   .topbar,
   .page-grid,
-  .chart-grid {
+  .chart-grid,
+  .ai-workbench-grid,
+  .prompt-compare-grid {
     grid-template-columns: 1fr;
+  }
+
+  .ai-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-state-strip {
+    justify-content: flex-start;
   }
 
   .topbar {
@@ -1221,7 +1510,8 @@ td small {
   .task-filter-row,
   .report-form,
   .timeline,
-  .ai-actions {
+  .ai-actions,
+  .context-cards {
     grid-template-columns: 1fr;
   }
 
@@ -1265,8 +1555,13 @@ td small {
   }
 
   .topbar-actions,
-  .section-title {
+  .section-title,
+  .composer-actions {
     grid-template-columns: 1fr;
+  }
+
+  .composer-actions {
+    display: grid;
   }
 
   .section-title {
@@ -1286,6 +1581,7 @@ td small {
   input,
   select,
   textarea {
+    width: 100%;
     min-height: 44px;
   }
 
