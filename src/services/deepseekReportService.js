@@ -115,6 +115,7 @@ export async function streamDeepSeekMessages({
   onDelta,
   signal,
   maxTokens = 800,
+  maxContinuations = 1,
   temperature = 0.3,
   forceFail = false,
 }) {
@@ -128,6 +129,41 @@ export async function streamDeepSeekMessages({
     throw new Error('未配置 DeepSeek API Key。请在 .env 中配置 DEEPSEEK_API_KEY，或设置 VITE_DEEPSEEK_USE_PROXY=false 并配置 VITE_DEEPSEEK_API_KEY。')
   }
 
+  let fullText = ''
+  let requestMessages = messages
+
+  for (let continuation = 0; continuation <= maxContinuations; continuation += 1) {
+    const response = await requestWithFallback({
+      config,
+      messages: requestMessages,
+      signal,
+      maxTokens,
+      temperature,
+    })
+    const result = response.body
+      ? await readSseStream(response.body, onDelta)
+      : await readJsonResponse(response, onDelta)
+
+    fullText += result.content
+
+    if (result.finishReason !== 'length' || continuation === maxContinuations) {
+      return fullText
+    }
+
+    requestMessages = [
+      ...messages,
+      { role: 'assistant', content: fullText },
+      {
+        role: 'user',
+        content: '上一条回答因长度限制中断。请从中断位置直接续写，保持原有 Markdown 结构，不要重复已经生成的内容。',
+      },
+    ]
+  }
+
+  return fullText
+}
+
+async function requestWithFallback({ config, messages, signal, maxTokens, temperature }) {
   let response = await requestDeepSeek({
     url: config.useProxy ? config.proxyUrl : `${config.baseUrl}/chat/completions`,
     apiKey: config.useProxy ? '' : config.apiKey,
@@ -160,14 +196,19 @@ export async function streamDeepSeekMessages({
     throw new Error(`DeepSeek API 请求失败：${response.status} ${detail.slice(0, 120)}`)
   }
 
-  if (!response.body) {
-    const data = await response.json()
-    const content = data.choices?.[0]?.message?.content ?? ''
-    onDelta?.(content)
-    return content
-  }
+  return response
+}
 
-  return readSseStream(response.body, onDelta)
+async function readJsonResponse(response, onDelta) {
+  const data = await response.json()
+  const choice = data.choices?.[0]
+  const content = choice?.message?.content ?? ''
+  onDelta?.(content)
+
+  return {
+    content,
+    finishReason: choice?.finish_reason ?? 'stop',
+  }
 }
 
 function requestDeepSeek({ url, apiKey, model, messages, signal, maxTokens, temperature }) {
@@ -199,6 +240,7 @@ async function readSseStream(body, onDelta) {
   const decoder = new TextDecoder('utf-8')
   let buffer = ''
   let fullText = ''
+  let finishReason = null
 
   while (true) {
     const { done, value } = await reader.read()
@@ -221,12 +263,20 @@ async function readSseStream(body, onDelta) {
       const payload = line.slice(5).trim()
 
       if (payload === '[DONE]') {
-        return fullText
+        return {
+          content: fullText,
+          finishReason: finishReason ?? 'stop',
+        }
       }
 
       try {
         const event = JSON.parse(payload)
-        const delta = event.choices?.[0]?.delta?.content ?? ''
+        const choice = event.choices?.[0]
+        const delta = choice?.delta?.content ?? ''
+
+        if (choice?.finish_reason) {
+          finishReason = choice.finish_reason
+        }
 
         if (delta) {
           fullText += delta
@@ -238,5 +288,8 @@ async function readSseStream(body, onDelta) {
     }
   }
 
-  return fullText
+  return {
+    content: fullText,
+    finishReason: finishReason ?? 'stop',
+  }
 }
