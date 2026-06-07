@@ -72,24 +72,46 @@ textarea {
 .app-shell {
   min-height: 100vh;
   display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  transition: grid-template-columns 220ms ease;
+}
+
+.app-shell.sidebar-pinned {
   grid-template-columns: 248px minmax(0, 1fr);
 }
 
 .sidebar {
-  min-width: 0;
-  padding: 24px 18px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  width: 72px;
+  height: 100vh;
+  overflow: hidden;
+  padding: 20px 14px;
   background: #081726;
   border-right: 1px solid #17314a;
+  transition:
+    width 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.sidebar:hover,
+.sidebar:focus-within,
+.sidebar-pinned .sidebar {
+  width: 248px;
+  box-shadow: 14px 0 30px rgba(0, 0, 0, 0.22);
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 28px;
+  width: 220px;
+  margin-bottom: 16px;
 }
 
 .brand-mark {
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
   width: 42px;
@@ -106,16 +128,75 @@ textarea {
   color: #91a4b8;
 }
 
+.sidebar-copy {
+  opacity: 0;
+  visibility: hidden;
+  white-space: nowrap;
+  transition:
+    opacity 140ms ease 40ms,
+    visibility 140ms ease 40ms;
+}
+
+.sidebar:hover .sidebar-copy,
+.sidebar:focus-within .sidebar-copy,
+.sidebar-pinned .sidebar-copy {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sidebar-controls {
+  display: flex;
+  width: 220px;
+  margin-bottom: 14px;
+}
+
+.sidebar-pin {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 42px;
+  min-height: 38px;
+  padding: 0 11px;
+  color: #9fb2c6;
+  background: transparent;
+  transition:
+    width 220ms ease,
+    color 180ms ease,
+    background 180ms ease;
+}
+
+.sidebar:hover .sidebar-pin,
+.sidebar:focus-within .sidebar-pin,
+.sidebar-pinned .sidebar-pin {
+  width: 220px;
+}
+
+.sidebar-pin:hover,
+.sidebar-pin.active {
+  color: #67e8f9;
+  background: #10283d;
+}
+
 .sidebar nav {
   display: grid;
   gap: 8px;
+  width: 220px;
 }
 
 .sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
   padding: 11px 12px;
   border-radius: 6px;
   color: #b9c7d8;
   text-decoration: none;
+}
+
+.sidebar a svg,
+.sidebar-pin svg {
+  flex: 0 0 auto;
 }
 
 .sidebar a.is-active {
@@ -907,13 +988,18 @@ td small {
 
 .ai-chat-shell {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
   min-height: calc(100vh - 150px);
   border: 1px solid #1f3a55;
   border-radius: 8px;
   background: #07111f;
   overflow: hidden;
   animation: panel-in 420ms ease both;
+  transition: grid-template-columns 220ms ease;
+}
+
+.ai-chat-shell.workbar-pinned {
+  grid-template-columns: 260px minmax(0, 1fr);
 }
 
 .ai-workspace .ai-chat-shell {
@@ -922,24 +1008,89 @@ td small {
 }
 
 .ai-workbar {
+  position: relative;
+  z-index: 6;
   display: grid;
   grid-template-rows: auto auto auto auto 1fr;
   gap: 14px;
-  padding: 14px;
+  width: 64px;
+  overflow: hidden;
+  padding: 10px;
   border-right: 1px solid #1f3a55;
   background: #081523;
   animation: side-slide 460ms ease both;
+  transition:
+    width 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.ai-workbar:hover,
+.ai-workbar:focus-within,
+.workbar-pinned .ai-workbar {
+  width: 260px;
+  box-shadow: 14px 0 30px rgba(0, 0, 0, 0.22);
 }
 
 .ai-workbar-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  flex-direction: column;
   gap: 10px;
+  width: 238px;
+  transition: flex-direction 220ms ease;
+}
+
+.ai-workbar:hover .ai-workbar-head,
+.ai-workbar:focus-within .ai-workbar-head,
+.workbar-pinned .ai-workbar-head {
+  align-items: center;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.workbar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  order: -1;
 }
 
 .ai-workbar-head strong {
   font-size: 18px;
+}
+
+.workbar-pin {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 42px;
+  min-height: 36px;
+  padding: 0;
+  color: #9fb2c6;
+  background: transparent;
+}
+
+.workbar-pin:hover,
+.workbar-pin.active {
+  color: #67e8f9;
+  background: #10283d;
+}
+
+.workbar-label {
+  opacity: 0;
+  visibility: hidden;
+  white-space: nowrap;
+  transition:
+    opacity 140ms ease 40ms,
+    visibility 140ms ease 40ms;
+}
+
+.ai-workbar:hover .workbar-label,
+.ai-workbar:focus-within .workbar-label,
+.workbar-pinned .workbar-label {
+  opacity: 1;
+  visibility: visible;
 }
 
 .icon-button {
@@ -952,13 +1103,19 @@ td small {
 }
 
 .workbar-primary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   justify-content: flex-start;
-  width: 100%;
+  width: 238px;
+  min-height: 42px;
+  padding: 10px 11px;
 }
 
 .workbar-group {
   display: grid;
   gap: 6px;
+  width: 238px;
 }
 
 .workbar-group > span {
@@ -968,8 +1125,13 @@ td small {
 }
 
 .workbar-group button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   justify-content: flex-start;
-  width: 100%;
+  width: 238px;
+  min-height: 42px;
+  padding: 10px 11px;
   color: #cbd5e1;
   background: transparent;
   transition:
@@ -987,13 +1149,26 @@ td small {
 
 .workbar-status {
   align-self: end;
-  display: grid;
+  display: flex;
+  align-items: center;
   gap: 8px;
+  width: 238px;
+  min-height: 42px;
 }
 
 .workbar-status small {
+  display: block;
+  margin-top: 6px;
   color: #9fb2c6;
   overflow-wrap: anywhere;
+}
+
+.status-dot {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  margin-left: 15px;
+  border-radius: 999px;
 }
 
 .ai-chat-main {
@@ -1576,6 +1751,19 @@ td small {
   color: #26364a;
 }
 
+[data-theme='light'] .sidebar-pin,
+[data-theme='light'] .workbar-pin {
+  color: #5d6d82;
+}
+
+[data-theme='light'] .sidebar-pin:hover,
+[data-theme='light'] .sidebar-pin.active,
+[data-theme='light'] .workbar-pin:hover,
+[data-theme='light'] .workbar-pin.active {
+  color: #0e7490;
+  background: #e0f2f7;
+}
+
 [data-theme='light'] .sidebar a.is-active {
   color: #063342;
   background: #67ddeb;
@@ -1860,16 +2048,44 @@ td small {
     overflow: visible;
   }
 
-  .app-shell {
+  .app-shell,
+  .app-shell.sidebar-pinned {
     grid-template-columns: 1fr;
   }
 
-  .sidebar {
+  .sidebar,
+  .sidebar:hover,
+  .sidebar:focus-within,
+  .sidebar-pinned .sidebar {
     position: sticky;
     top: 0;
     z-index: 10;
+    width: 100%;
+    height: auto;
     padding: 16px;
     overflow: hidden;
+    box-shadow: none;
+  }
+
+  .sidebar-copy,
+  .sidebar:hover .sidebar-copy,
+  .sidebar:focus-within .sidebar-copy,
+  .sidebar-pinned .sidebar-copy,
+  .workbar-label,
+  .ai-workbar:hover .workbar-label,
+  .ai-workbar:focus-within .workbar-label,
+  .workbar-pinned .workbar-label {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .sidebar-controls,
+  .workbar-pin {
+    display: none;
+  }
+
+  .brand {
+    width: auto;
   }
 
   .sidebar nav {
@@ -1880,15 +2096,36 @@ td small {
   .page-grid,
   .chart-grid,
   .ai-chat-shell,
+  .ai-chat-shell.workbar-pinned,
   .ai-workbench-grid,
   .prompt-compare-grid {
     grid-template-columns: 1fr;
   }
 
-  .ai-workbar {
+  .ai-workbar,
+  .ai-workbar:hover,
+  .ai-workbar:focus-within,
+  .workbar-pinned .ai-workbar {
+    width: 100%;
+    overflow: visible;
     grid-template-rows: auto;
     border-right: 0;
     border-bottom: 1px solid #1f3a55;
+    box-shadow: none;
+  }
+
+  .ai-workbar-head {
+    align-items: center;
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+
+  .workbar-primary,
+  .workbar-group,
+  .workbar-group button,
+  .workbar-status {
+    width: 100%;
   }
 
   .ai-chat-main {
@@ -1995,6 +2232,10 @@ td small {
     grid-auto-columns: max-content;
     overflow-x: auto;
     padding-bottom: 2px;
+  }
+
+  .workbar-group button {
+    width: auto;
   }
 
   .workbar-group > span {

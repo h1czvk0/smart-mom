@@ -1,4 +1,17 @@
 <script setup>
+import {
+  Bot,
+  Database,
+  FileText,
+  GitCompareArrows,
+  MessageCircleQuestionMark,
+  MessageSquarePlus,
+  MessagesSquare,
+  Pin,
+  PinOff,
+  Settings,
+  TriangleAlert,
+} from '@lucide/vue'
 import MarkdownIt from 'markdown-it'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { abnormalTypes, buildReportStats } from '../data/mock'
@@ -19,22 +32,26 @@ const markdown = new MarkdownIt({
   linkify: true,
   typographer: false,
 })
+const WORKBAR_PIN_KEY = 'smart-mom-ai-workbar-pinned'
 
 const chatProfiles = {
   dispatch: {
     label: '班组长问答',
+    icon: MessageCircleQuestionMark,
     description: '围绕工单、产线、加急任务和当班处置顺序回答。',
     system:
       '你是智造孪生 MOM 系统的班组长 AI 助手。只能回答与本系统生产任务、工单、产线、设备、工序、报工、异常闭环、生产报表相关的问题。请基于提供的业务上下文回答，不要编造不存在的工单、设备或人员。',
   },
   abnormal: {
     label: '异常处置顾问',
+    icon: TriangleAlert,
     description: '优先分析异常工单、风险设备和处置动作。',
     system:
       '你是制造车间异常处置顾问。请优先识别异常工单、加急任务、风险设备、影响范围和下一步闭环动作。回答必须包含优先级和责任建议，格式使用 Markdown。',
   },
   manager: {
     label: '管理汇报助手',
+    icon: FileText,
     description: '用管理层视角总结完成率、产出、资源和风险。',
     system:
       '你是制造运营经理助理。请面向管理层输出简洁、可汇报的 Markdown 摘要，突出完成率、产出、设备利用率、异常风险和管理动作。',
@@ -67,16 +84,17 @@ const comparisonItems = ref(buildComparisonItems())
 const comparisonLoading = ref(false)
 const chatFeed = ref(null)
 const shouldFollowMessages = ref(true)
+const workbarPinned = ref(window.localStorage.getItem(WORKBAR_PIN_KEY) === 'true')
 let messageId = 2
 let abortController = null
 let comparisonAbortController = null
 let scrollFrame = null
 
 const workspaceTools = [
-  { value: 'chat', label: '对话' },
-  { value: 'context', label: '业务上下文' },
-  { value: 'prompt', label: 'Prompt' },
-  { value: 'compare', label: '提示词对比' },
+  { value: 'chat', label: '对话', icon: MessagesSquare },
+  { value: 'context', label: '业务上下文', icon: Database },
+  { value: 'prompt', label: 'Prompt', icon: Settings },
+  { value: 'compare', label: '提示词对比', icon: GitCompareArrows },
 ]
 const activeProfile = computed(() => chatProfiles[promptMode.value] ?? chatProfiles.dispatch)
 const visibleMessages = computed(() => messages.value.filter((message) => message.content.trim()))
@@ -240,6 +258,10 @@ watch(activeTool, (tool) => {
   }
 })
 
+watch(workbarPinned, (value) => {
+  window.localStorage.setItem(WORKBAR_PIN_KEY, String(value))
+})
+
 async function generatePromptComparison() {
   comparisonAbortController?.abort()
   comparisonAbortController = new AbortController()
@@ -307,44 +329,67 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="ai-chat-shell">
+  <section :class="['ai-chat-shell', { 'workbar-pinned': workbarPinned }]">
     <aside class="ai-workbar">
       <div class="ai-workbar-head">
-        <strong>智能助手</strong>
-        <button type="button" class="icon-button" title="新对话" @click="clearMessages">+</button>
+        <button
+          type="button"
+          class="workbar-pin"
+          :class="{ active: workbarPinned }"
+          :title="workbarPinned ? '取消固定工具栏' : '固定工具栏'"
+          :aria-label="workbarPinned ? '取消固定工具栏' : '固定工具栏'"
+          @click="workbarPinned = !workbarPinned"
+        >
+          <PinOff v-if="workbarPinned" :size="18" />
+          <Pin v-else :size="18" />
+        </button>
+        <div class="workbar-title">
+          <Bot :size="20" />
+          <strong class="workbar-label">智能助手</strong>
+        </div>
       </div>
 
-      <button type="button" class="workbar-primary" @click="clearMessages">新对话</button>
+      <button type="button" class="workbar-primary" title="新对话" @click="clearMessages">
+        <MessageSquarePlus :size="20" />
+        <span class="workbar-label">新对话</span>
+      </button>
 
       <div class="workbar-group">
-        <span>场景</span>
+        <span class="workbar-label">场景</span>
         <button
           v-for="item in chatProfileOptions"
           :key="item.value"
           type="button"
           :class="{ active: promptMode === item.value && activeTool === 'chat' }"
+          :title="item.label"
           @click="selectProfile(item.value)"
         >
-          {{ item.label }}
+          <component :is="item.icon" :size="20" />
+          <span class="workbar-label">{{ item.label }}</span>
         </button>
       </div>
 
       <div class="workbar-group">
-        <span>工具</span>
+        <span class="workbar-label">工具</span>
         <button
           v-for="item in workspaceTools"
           :key="item.value"
           type="button"
           :class="{ active: activeTool === item.value }"
+          :title="item.label"
           @click="activeTool = item.value"
         >
-          {{ item.label }}
+          <component :is="item.icon" :size="20" />
+          <span class="workbar-label">{{ item.label }}</span>
         </button>
       </div>
 
       <div class="workbar-status">
-        <span :class="['ai-state', `state-${status}`]">{{ statusText }}</span>
-        <small>{{ aiSource }}</small>
+        <span :class="['status-dot', `state-${status}`]" :title="statusText"></span>
+        <div class="workbar-label">
+          <span :class="['ai-state', `state-${status}`]">{{ statusText }}</span>
+          <small>{{ aiSource }}</small>
+        </div>
       </div>
     </aside>
 
