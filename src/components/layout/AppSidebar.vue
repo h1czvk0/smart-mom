@@ -9,10 +9,9 @@ import {
   Pin,
   PinOff,
 } from '@lucide/vue'
-import { ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
-const props = defineProps({
+defineProps({
   pinned: {
     type: Boolean,
     required: true,
@@ -22,7 +21,6 @@ const props = defineProps({
 const emit = defineEmits(['toggle-pin'])
 
 const route = useRoute()
-const suppressHover = ref(false)
 const menus = [
   { to: '/dashboard', label: '控制台首页', name: 'dashboard', icon: LayoutDashboard },
   { to: '/tasks', label: '生产任务', name: 'tasks', icon: ClipboardList },
@@ -45,23 +43,22 @@ function isActive(item) {
 }
 
 function collapseAfterSelection(event) {
-  event.currentTarget.blur()
-
-  if (!props.pinned) {
-    suppressHover.value = true
+  if (event.detail > 0) {
+    event.currentTarget.blur()
   }
 }
 
 function togglePin(event) {
-  const wasPinned = props.pinned
-  event.currentTarget.blur()
+  if (event.detail > 0) {
+    event.currentTarget.blur()
+  }
+
   emit('toggle-pin')
-  suppressHover.value = wasPinned
 }
 </script>
 
 <template>
-  <aside :class="['sidebar', { 'sidebar-suppress-hover': suppressHover }]" @mouseleave="suppressHover = false">
+  <aside class="sidebar">
     <div class="brand">
       <span class="brand-mark">M</span>
       <div class="sidebar-copy">

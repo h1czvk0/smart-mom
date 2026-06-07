@@ -85,7 +85,6 @@ const comparisonLoading = ref(false)
 const chatFeed = ref(null)
 const shouldFollowMessages = ref(true)
 const workbarPinned = ref(window.localStorage.getItem(WORKBAR_PIN_KEY) === 'true')
-const suppressWorkbarHover = ref(false)
 let messageId = 2
 let abortController = null
 let comparisonAbortController = null
@@ -248,10 +247,8 @@ function clearMessages() {
 }
 
 function collapseWorkbarAfterAction(event) {
-  event.currentTarget.blur()
-
-  if (!workbarPinned.value) {
-    suppressWorkbarHover.value = true
+  if (event.detail > 0) {
+    event.currentTarget.blur()
   }
 }
 
@@ -272,10 +269,11 @@ function selectTool(value, event) {
 }
 
 function toggleWorkbarPin(event) {
-  const wasPinned = workbarPinned.value
-  event.currentTarget.blur()
+  if (event.detail > 0) {
+    event.currentTarget.blur()
+  }
+
   workbarPinned.value = !workbarPinned.value
-  suppressWorkbarHover.value = wasPinned
 }
 
 watch(activeTool, (tool) => {
@@ -357,10 +355,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section :class="['ai-chat-shell', { 'workbar-pinned': workbarPinned }]">
-    <aside
-      :class="['ai-workbar', { 'workbar-suppress-hover': suppressWorkbarHover }]"
-      @mouseleave="suppressWorkbarHover = false"
-    >
+    <aside class="ai-workbar">
       <div class="ai-workbar-head">
         <button
           type="button"

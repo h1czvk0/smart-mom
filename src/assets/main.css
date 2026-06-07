@@ -177,20 +177,6 @@ textarea {
   background: #10283d;
 }
 
-.app-shell:not(.sidebar-pinned) .sidebar.sidebar-suppress-hover {
-  width: 72px;
-  box-shadow: none;
-}
-
-.app-shell:not(.sidebar-pinned) .sidebar.sidebar-suppress-hover .sidebar-copy {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.app-shell:not(.sidebar-pinned) .sidebar.sidebar-suppress-hover .sidebar-pin {
-  width: 42px;
-}
-
 .sidebar nav {
   display: grid;
   gap: 8px;
@@ -1089,22 +1075,6 @@ td small {
 .workbar-pin.active {
   color: #67e8f9;
   background: #10283d;
-}
-
-.ai-chat-shell:not(.workbar-pinned) .ai-workbar.workbar-suppress-hover {
-  width: 64px;
-  box-shadow: none;
-}
-
-.ai-chat-shell:not(.workbar-pinned) .ai-workbar.workbar-suppress-hover .ai-workbar-head {
-  align-items: flex-start;
-  flex-direction: column;
-  justify-content: flex-start;
-}
-
-.ai-chat-shell:not(.workbar-pinned) .ai-workbar.workbar-suppress-hover .workbar-label {
-  opacity: 0;
-  visibility: hidden;
 }
 
 .workbar-label {
@@ -2086,8 +2056,7 @@ td small {
   .sidebar,
   .sidebar:hover,
   .sidebar:focus-within,
-  .sidebar-pinned .sidebar,
-  .app-shell:not(.sidebar-pinned) .sidebar.sidebar-suppress-hover {
+  .sidebar-pinned .sidebar {
     position: sticky;
     top: 0;
     z-index: 10;
@@ -2102,7 +2071,6 @@ td small {
   .sidebar:hover .sidebar-copy,
   .sidebar:focus-within .sidebar-copy,
   .sidebar-pinned .sidebar-copy,
-  .app-shell:not(.sidebar-pinned) .sidebar.sidebar-suppress-hover .sidebar-copy,
   .workbar-label,
   .ai-workbar:hover .workbar-label,
   .ai-workbar:focus-within .workbar-label,
@@ -2137,8 +2105,7 @@ td small {
   .ai-workbar,
   .ai-workbar:hover,
   .ai-workbar:focus-within,
-  .workbar-pinned .ai-workbar,
-  .ai-chat-shell:not(.workbar-pinned) .ai-workbar.workbar-suppress-hover {
+  .workbar-pinned .ai-workbar {
     width: 100%;
     overflow: visible;
     grid-template-rows: auto;
@@ -2147,17 +2114,11 @@ td small {
     box-shadow: none;
   }
 
-  .ai-workbar-head,
-  .ai-chat-shell:not(.workbar-pinned) .ai-workbar.workbar-suppress-hover .ai-workbar-head {
+  .ai-workbar-head {
     align-items: center;
     width: 100%;
     flex-direction: row;
     justify-content: flex-start;
-  }
-
-  .ai-chat-shell:not(.workbar-pinned) .ai-workbar.workbar-suppress-hover .workbar-label {
-    opacity: 1;
-    visibility: visible;
   }
 
   .workbar-primary,
