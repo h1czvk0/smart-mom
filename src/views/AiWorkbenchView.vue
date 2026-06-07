@@ -295,7 +295,6 @@ onBeforeUnmount(() => {
       <div>
         <p class="eyebrow">AI Workbench</p>
         <h2>AI 工作台</h2>
-        <span>真实 API 对话、业务 Prompt、流式输出、Markdown、多轮上下文</span>
       </div>
       <div class="ai-state-strip">
         <span :class="['ai-state', `state-${status}`]">{{ statusText }}</span>
@@ -399,7 +398,6 @@ onBeforeUnmount(() => {
     <details class="panel prompt-compare-panel">
       <summary>
         <span>提示词对比报告</span>
-        <small>加分项：对比不同 Prompt 对同一批 MOM 数据的输出差异</small>
       </summary>
       <div class="prompt-compare-body">
         <div class="ai-actions">
