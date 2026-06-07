@@ -50,8 +50,7 @@ const messages = ref([
   {
     id: 1,
     role: 'assistant',
-    content:
-      '### 可以开始提问\n- 我会基于当前 MOM 工单、设备和报表数据回答。\n- 回答会使用真实 DeepSeek / OpenAI 兼容接口生成。',
+    content: '### 可以开始提问\n- 我会基于当前 MOM 工单、设备和报表数据回答。',
   },
 ])
 const comparisonItems = ref(buildComparisonItems())

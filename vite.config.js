@@ -1,10 +1,10 @@
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
-function deepSeekProxy() {
+function deepSeekProxy(env) {
   return {
     name: 'deepseek-dev-proxy',
     configureServer(server) {
@@ -14,7 +14,7 @@ function deepSeekProxy() {
           return
         }
 
-        const apiKey = process.env.DEEPSEEK_API_KEY
+        const apiKey = process.env.DEEPSEEK_API_KEY || env.DEEPSEEK_API_KEY
 
         if (!apiKey) {
           res.statusCode = 501
@@ -25,7 +25,7 @@ function deepSeekProxy() {
 
         try {
           const body = await readRequestBody(req)
-          const baseUrl = (process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '')
+          const baseUrl = (process.env.DEEPSEEK_BASE_URL || env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '')
           const upstream = await fetch(`${baseUrl}/chat/completions`, {
             method: 'POST',
             headers: {
@@ -68,15 +68,19 @@ function readRequestBody(req) {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    vue(),
-    vueDevTools(),
-    deepSeekProxy(),
-  ],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+
+  return {
+    plugins: [
+      vue(),
+      vueDevTools(),
+      deepSeekProxy(env),
+    ],
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url))
+      },
     },
-  },
+  }
 })
