@@ -9,7 +9,7 @@
 - 任务详情 / 报工：支持表单双向绑定、数量校验、异常说明校验和报工记录追加。
 - 设备工序页面：展示产线设备运行、空闲、预警和停机状态。
 - AI 工作台：独立侧边栏入口，支持 DeepSeek / OpenAI 兼容对话 API、加载中 / 成功 / 失败状态、业务 Prompt、多轮上下文、流式输出、Markdown 展示和提示词对比。
-- 生产报表页面：展示模拟统计数据，并支持生成 AI 生产日报小结。
+- 生产报表页面：展示生产统计数据和 ECharts 图表。
 - 404 页面：处理未匹配路由。
 - 响应式适配：支持 PC、平板和手机视口，移动端无明显横向溢出。
 
@@ -64,7 +64,7 @@ smart-mom/
 | `/tasks/:id` | 任务详情 / 报工 | 动态任务详情与报工表单 |
 | `/devices` | 设备工序 | 设备与工序状态展示 |
 | `/ai` | AI 工作台 | 对话 API、业务 Prompt、流式输出、Markdown、多轮上下文和提示词对比 |
-| `/reports` | 生产报表 | 统计数据与 AI 小结 |
+| `/reports` | 生产报表 | 统计数据与 ECharts 图表 |
 | `/:pathMatch(.*)*` | 404 页面 | 未匹配路径兜底页面 |
 
 ## 运行环境
@@ -103,7 +103,7 @@ npm run lint
 
 ## AI 接入配置
 
-AI 工作台和 AI 报表小结使用 DeepSeek Chat Completions，接口路径为 `/chat/completions`，默认模型为 `deepseek-v4-flash`。
+AI 工作台使用 DeepSeek Chat Completions，接口路径为 `/chat/completions`，默认模型为 `deepseek-v4-flash`。
 
 推荐使用本地代理，避免在浏览器中暴露 Key：
 
@@ -134,7 +134,6 @@ VITE_DEEPSEEK_USE_PROXY=true
 - AI 流式输出与 Markdown 展示测试
 - AI 提示词对比测试
 - 生产报表展示测试
-- AI 报表小结测试
 - PC / 平板 / 手机响应式测试
 - 浏览器控制台报错检查
 
@@ -152,4 +151,4 @@ VITE_DEEPSEEK_USE_PROXY=true
 
 ## 项目说明
 
-本项目使用本地 mock 数据模拟生产任务、设备状态和报表统计数据，暂未接入真实后端业务接口。AI 工作台和 AI 报表小结通过 Vite 本地代理或浏览器直连调用 DeepSeek Chat Completions；未配置 Key 时会显示失败提示，便于演示加载中、成功、失败、流式输出、Markdown 渲染、多轮上下文和提示词对比效果。
+本项目使用本地 mock 数据模拟生产任务、设备状态和报表统计数据，暂未接入真实后端业务接口。AI 工作台通过 Vite 本地代理或浏览器直连调用 DeepSeek Chat Completions；未配置 Key 时会显示失败提示，便于演示加载中、成功、失败、流式输出、Markdown 渲染、多轮上下文和提示词对比效果。
