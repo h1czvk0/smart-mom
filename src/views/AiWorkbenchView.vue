@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { abnormalTypes, buildReportStats } from '../data/mock'
 import {
   buildReportPrompt,
@@ -57,9 +57,12 @@ const messages = ref([
 ])
 const comparisonItems = ref(buildComparisonItems())
 const comparisonLoading = ref(false)
+const chatFeed = ref(null)
+const shouldFollowMessages = ref(true)
 let messageId = 2
 let abortController = null
 let comparisonAbortController = null
+let scrollFrame = null
 
 const workspaceTools = [
   { value: 'chat', label: '对话' },
@@ -112,6 +115,8 @@ async function sendMessage() {
   messages.value.push({ id: messageId++, role: 'assistant', content: '' })
   const assistantIndex = messages.value.length - 1
   input.value = ''
+  shouldFollowMessages.value = true
+  scheduleScrollToBottom()
 
   try {
     await streamDeepSeekMessages({
@@ -141,6 +146,38 @@ async function sendMessage() {
 
 function appendAssistantDelta(index, delta) {
   messages.value[index].content += delta
+  scheduleScrollToBottom()
+}
+
+function handleChatScroll() {
+  const feed = chatFeed.value
+  if (!feed) return
+
+  const distanceFromBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight
+  shouldFollowMessages.value = distanceFromBottom <= 48
+
+  if (!shouldFollowMessages.value && scrollFrame !== null) {
+    cancelAnimationFrame(scrollFrame)
+    scrollFrame = null
+  }
+}
+
+function scheduleScrollToBottom(force = false) {
+  if (!force && !shouldFollowMessages.value) return
+
+  if (scrollFrame !== null) {
+    cancelAnimationFrame(scrollFrame)
+  }
+
+  scrollFrame = requestAnimationFrame(async () => {
+    scrollFrame = null
+    await nextTick()
+
+    const feed = chatFeed.value
+    if (feed) {
+      feed.scrollTop = feed.scrollHeight
+    }
+  })
 }
 
 function buildChatMessages() {
@@ -180,12 +217,21 @@ function clearMessages() {
       content: '### 已开启新的对话\n- 你可以继续问我工单、设备、异常或报表相关的问题。',
     },
   ]
+  shouldFollowMessages.value = true
+  scheduleScrollToBottom(true)
 }
 
 function selectProfile(value) {
   promptMode.value = value
   activeTool.value = 'chat'
 }
+
+watch(activeTool, (tool) => {
+  if (tool === 'chat') {
+    shouldFollowMessages.value = true
+    scheduleScrollToBottom(true)
+  }
+})
 
 async function generatePromptComparison() {
   comparisonAbortController?.abort()
@@ -300,6 +346,9 @@ function escapeHtml(value) {
 onBeforeUnmount(() => {
   abortController?.abort()
   comparisonAbortController?.abort()
+  if (scrollFrame !== null) {
+    cancelAnimationFrame(scrollFrame)
+  }
 })
 </script>
 
@@ -358,7 +407,7 @@ onBeforeUnmount(() => {
       <p v-if="error && activeTool === 'chat'" class="feedback error">{{ error }}</p>
 
       <template v-if="activeTool === 'chat'">
-        <div class="chat-feed">
+        <div ref="chatFeed" class="chat-feed" @scroll.passive="handleChatScroll">
           <article v-for="message in visibleMessages" :key="message.id" :class="['chat-bubble', message.role]">
             <span>{{ message.role === 'user' ? '我' : 'AI' }}</span>
             <div class="markdown-summary" v-html="renderMarkdown(message.content)"></div>
