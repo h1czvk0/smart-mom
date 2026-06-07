@@ -498,14 +498,15 @@ td small {
   background: #132b43;
 }
 
-.progress-bar span {
+.progress-wrap .progress-bar span {
   display: block;
   height: 100%;
+  margin-top: 0;
   background: linear-gradient(90deg, #38bdf8, #5eead4, #22c55e);
   transition: width 420ms ease;
 }
 
-.progress-bar span::after {
+.progress-wrap .progress-bar span::after {
   display: block;
   width: 100%;
   height: 100%;
@@ -592,6 +593,7 @@ td small {
   border-radius: 999px;
   color: #ffedd5;
   background: #9a3412;
+  font-weight: 700;
 }
 
 .text-link {
@@ -1098,6 +1100,11 @@ td small {
 [data-theme='light'] .status-warning {
   color: #9a3412;
   background: #ffedd5;
+}
+
+[data-theme='light'] .urgent-pill {
+  color: #ffffff;
+  background: #b42318;
 }
 
 [data-theme='light'] .progress-bar {
