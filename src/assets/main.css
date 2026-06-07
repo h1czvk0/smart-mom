@@ -703,8 +703,10 @@ td small {
 
 .markdown-summary {
   display: block;
+  width: 100%;
   min-width: 0;
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .markdown-summary :is(h1, h2, h3, h4, h5, h6) {
@@ -753,6 +755,8 @@ td small {
 }
 
 .markdown-summary code {
+  white-space: break-spaces;
+  overflow-wrap: anywhere;
   border: 1px solid #28445f;
   border-radius: 4px;
   padding: 1px 5px;
@@ -763,9 +767,11 @@ td small {
 }
 
 .markdown-summary pre {
+  white-space: pre-wrap;
+  word-break: break-word;
   max-width: 100%;
   margin: 10px 0;
-  overflow-x: auto;
+  overflow-x: hidden;
   border: 1px solid #28445f;
   border-radius: 6px;
   padding: 12px;
@@ -798,12 +804,11 @@ td small {
 }
 
 .markdown-summary table {
-  display: block;
-  width: max-content;
+  width: 100%;
   max-width: 100%;
   margin: 10px 0;
-  overflow-x: auto;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .markdown-summary th,
@@ -811,7 +816,9 @@ td small {
   border: 1px solid #28445f;
   padding: 8px 10px;
   text-align: left;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .prompt-preview {
@@ -1045,18 +1052,23 @@ td small {
 
 .chat-feed {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 12px;
   flex: 1;
+  width: 100%;
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   padding-right: 4px;
 }
 
 .chat-bubble {
-  width: min(86%, 760px);
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
   border: 1px solid #1f3a55;
   border-radius: 8px;
   padding: 12px 14px;
@@ -1074,6 +1086,8 @@ td small {
 
 .chat-bubble.user {
   justify-self: end;
+  width: fit-content;
+  max-width: min(72%, 760px);
   border-color: #0e7490;
   background: #123456;
 }
@@ -1083,11 +1097,13 @@ td small {
 }
 
 .chat-bubble.assistant {
-  justify-self: start;
+  justify-self: stretch;
+  width: 100%;
 }
 
 .chat-bubble.typing {
   width: max-content;
+  max-width: 100%;
 }
 
 .typing-dots {
@@ -1964,6 +1980,10 @@ td small {
   .ai-chat-main {
     height: min(680px, calc(100dvh - 120px));
     min-height: 520px;
+  }
+
+  .chat-bubble.user {
+    max-width: 92%;
   }
 
   .ai-workbar {
