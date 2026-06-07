@@ -34,6 +34,7 @@ const chatProfiles = {
 }
 
 const promptMode = ref('dispatch')
+const activeTool = ref('chat')
 const input = ref('请帮我判断今天优先处理哪些异常工单，并给出下一步动作。')
 const status = ref('idle')
 const error = ref('')
@@ -59,6 +60,12 @@ let messageId = 2
 let abortController = null
 let comparisonAbortController = null
 
+const workspaceTools = [
+  { value: 'chat', label: '智能对话' },
+  { value: 'context', label: '业务上下文' },
+  { value: 'prompt', label: 'Prompt' },
+  { value: 'compare', label: '提示词对比' },
+]
 const activeProfile = computed(() => chatProfiles[promptMode.value] ?? chatProfiles.dispatch)
 const visibleMessages = computed(() => messages.value.filter((message) => message.content.trim()))
 const stats = computed(() => buildReportStats(productionState.tasks, productionState.devices))
@@ -82,6 +89,7 @@ const currentPromptPreview = computed(() => [
   contextPreview.value,
 ].join('\n'))
 const deepSeekConfig = computed(() => getDeepSeekConfig())
+const workspaceTitle = computed(() => workspaceTools.find((tool) => tool.value === activeTool.value)?.label ?? '智能对话')
 
 async function sendMessage() {
   const content = input.value.trim()
@@ -160,6 +168,7 @@ function cancelMessage() {
 
 function clearMessages() {
   abortController?.abort()
+  activeTool.value = 'chat'
   status.value = 'idle'
   error.value = ''
   input.value = '请帮我判断今天优先处理哪些异常工单，并给出下一步动作。'
@@ -170,6 +179,11 @@ function clearMessages() {
       content: '### 已清空上下文\n- 可以重新选择 Prompt 模式并开始新的多轮对话。',
     },
   ]
+}
+
+function selectProfile(value) {
+  promptMode.value = value
+  activeTool.value = 'chat'
 }
 
 async function generatePromptComparison() {
@@ -289,30 +303,60 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="ai-workbench">
-    <section class="ai-page-head">
-      <div>
-        <p class="eyebrow">AI Workbench</p>
-        <h2>AI 工作台</h2>
+  <section class="ai-chat-shell">
+    <aside class="ai-workbar">
+      <div class="ai-workbar-head">
+        <strong>AI 工作台</strong>
+        <button type="button" class="icon-button" title="新对话" @click="clearMessages">+</button>
       </div>
-      <div class="ai-state-strip">
+
+      <button type="button" class="workbar-primary" @click="clearMessages">新对话</button>
+
+      <div class="workbar-group">
+        <span>场景</span>
+        <button
+          v-for="item in chatProfileOptions"
+          :key="item.value"
+          type="button"
+          :class="{ active: promptMode === item.value && activeTool === 'chat' }"
+          @click="selectProfile(item.value)"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+
+      <div class="workbar-group">
+        <span>工具</span>
+        <button
+          v-for="item in workspaceTools"
+          :key="item.value"
+          type="button"
+          :class="{ active: activeTool === item.value }"
+          @click="activeTool = item.value"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+
+      <div class="workbar-status">
         <span :class="['ai-state', `state-${status}`]">{{ statusText }}</span>
-        <span>{{ aiSource }}</span>
+        <small>{{ aiSource }}</small>
       </div>
-    </section>
+    </aside>
 
-    <section class="ai-workbench-grid">
-      <section class="panel ai-chat-panel">
-        <div class="section-title">
-          <div>
-            <h2>业务多轮对话</h2>
-            <span>{{ activeProfile.description }}</span>
-          </div>
-          <button type="button" class="secondary-button" @click="clearMessages">清空对话</button>
+    <section class="ai-chat-main">
+      <header class="ai-chat-header">
+        <div>
+          <p class="eyebrow">AI Workbench</p>
+          <h2>{{ workspaceTitle }}</h2>
+          <span v-if="activeTool === 'chat'">{{ activeProfile.description }}</span>
         </div>
+        <button v-if="activeTool === 'chat'" type="button" class="secondary-button" @click="clearMessages">清空对话</button>
+      </header>
 
-        <p v-if="error" class="feedback error">{{ error }}</p>
+      <p v-if="error && activeTool === 'chat'" class="feedback error">{{ error }}</p>
 
+      <template v-if="activeTool === 'chat'">
         <div class="chat-feed">
           <article v-for="message in visibleMessages" :key="message.id" :class="['chat-bubble', message.role]">
             <span>{{ message.role === 'user' ? '我' : 'AI' }}</span>
@@ -332,25 +376,41 @@ onBeforeUnmount(() => {
           <textarea
             v-model="input"
             :disabled="status === 'loading'"
-            rows="4"
+            rows="3"
             placeholder="输入与生产任务、异常、设备或报表相关的问题"
             aria-label="AI 对话输入"
           ></textarea>
           <div class="composer-actions">
             <button type="submit" :disabled="status === 'loading'">
-              {{ status === 'loading' ? '流式生成中...' : '发送问题' }}
+              {{ status === 'loading' ? '生成中...' : '发送' }}
             </button>
             <button v-if="status === 'loading'" type="button" class="secondary-button" @click="cancelMessage">取消</button>
           </div>
         </form>
+      </template>
+
+      <section v-else-if="activeTool === 'context'" class="ai-tool-panel">
+        <div class="context-cards">
+          <article>
+            <span>异常工单</span>
+            <strong>{{ abnormalTasks.length }}</strong>
+          </article>
+          <article>
+            <span>加急未完成</span>
+            <strong>{{ urgentTasks.length }}</strong>
+          </article>
+          <article>
+            <span>风险设备</span>
+            <strong>{{ riskyDevices.length }}</strong>
+          </article>
+        </div>
+        <div class="prompt-preview">
+          <pre>{{ contextPreview }}</pre>
+        </div>
       </section>
 
-      <aside class="ai-side-stack">
-        <section class="panel ai-settings-card">
-          <div class="section-title compact-title">
-            <h2>AI 设置</h2>
-            <span>{{ hasDeepSeekApiKey() ? '浏览器直连 Key 已配置' : '建议使用本地代理 Key' }}</span>
-          </div>
+      <section v-else-if="activeTool === 'prompt'" class="ai-tool-panel">
+        <div class="ai-settings-card">
           <label>
             <span>Prompt 模式</span>
             <select v-model="promptMode" :disabled="status === 'loading'" aria-label="AI Prompt 模式">
@@ -363,42 +423,15 @@ onBeforeUnmount(() => {
             <span>模型：{{ deepSeekConfig.model }}</span>
             <span>连接：{{ getDeepSeekConnectionLabel() }}</span>
             <span>接口：{{ deepSeekConfig.useProxy ? deepSeekConfig.proxyUrl : `${deepSeekConfig.baseUrl}/chat/completions` }}</span>
+            <span>{{ hasDeepSeekApiKey() ? '浏览器直连 Key 已配置' : '本地代理 Key' }}</span>
           </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-title compact-title">
-            <h2>业务上下文</h2>
-            <span>随问题一起发送</span>
-          </div>
-          <div class="context-cards">
-            <article>
-              <span>异常工单</span>
-              <strong>{{ abnormalTasks.length }}</strong>
-            </article>
-            <article>
-              <span>加急未完成</span>
-              <strong>{{ urgentTasks.length }}</strong>
-            </article>
-            <article>
-              <span>风险设备</span>
-              <strong>{{ riskyDevices.length }}</strong>
-            </article>
-          </div>
-        </section>
-
-        <details class="prompt-preview">
-          <summary>查看当前对话 Prompt</summary>
+        </div>
+        <div class="prompt-preview">
           <pre>{{ currentPromptPreview }}</pre>
-        </details>
-      </aside>
-    </section>
+        </div>
+      </section>
 
-    <details class="panel prompt-compare-panel">
-      <summary>
-        <span>提示词对比报告</span>
-      </summary>
-      <div class="prompt-compare-body">
+      <section v-else class="ai-tool-panel">
         <div class="ai-actions">
           <button type="button" :disabled="comparisonLoading" @click="generatePromptComparison">
             {{ comparisonLoading ? '对比生成中...' : '生成提示词对比' }}
@@ -421,7 +454,7 @@ onBeforeUnmount(() => {
             </details>
           </article>
         </div>
-      </div>
-    </details>
+      </section>
+    </section>
   </section>
 </template>
