@@ -442,7 +442,7 @@ onBeforeUnmount(() => {
       <article v-if="summary" class="ai-summary markdown-summary" v-html="renderedSummary"></article>
       <article v-if="!summary && !loading && !error" class="panel-inline">
         <strong>等待生成</strong>
-        <span>点击按钮后会优先通过本地代理调用 DeepSeek API；未配置 Key 时自动使用 mock 流式兜底，仍可展示打字机效果。</span>
+        <span>点击按钮后会通过本地代理或浏览器直连调用 DeepSeek API；未配置 API Key 时会显示失败提示。</span>
       </article>
 
       <details class="prompt-preview">

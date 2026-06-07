@@ -51,7 +51,7 @@ const messages = ref([
     id: 1,
     role: 'assistant',
     content:
-      '### AI 工作台已就绪\n- 可基于当前 MOM 任务、设备和报表数据回答问题。\n- 支持流式输出、Markdown 展示和多轮上下文记忆。\n- 可使用右侧 Prompt 模式切换不同业务角色。',
+      '### 可以开始提问\n- 我会基于当前 MOM 工单、设备和报表数据回答。\n- 回答会使用真实 DeepSeek / OpenAI 兼容接口生成。',
   },
 ])
 const comparisonItems = ref(buildComparisonItems())
@@ -84,10 +84,10 @@ const currentPromptPreview = computed(() => [
 ].join('\n'))
 const deepSeekConfig = computed(() => getDeepSeekConfig())
 
-async function sendMessage({ forceFail = false } = {}) {
+async function sendMessage() {
   const content = input.value.trim()
 
-  if (!content && !forceFail) {
+  if (!content) {
     error.value = '请输入需要 AI 分析的生产问题。'
     status.value = 'error'
     return
@@ -99,7 +99,7 @@ async function sendMessage({ forceFail = false } = {}) {
   status.value = 'loading'
   aiSource.value = `${getDeepSeekConnectionLabel()} · ${deepSeekConfig.value.model}`
 
-  const userContent = forceFail ? '请演示 AI 请求失败状态。' : content
+  const userContent = content
   messages.value.push({ id: messageId++, role: 'user', content: userContent })
   messages.value.push({ id: messageId++, role: 'assistant', content: '' })
   const assistantIndex = messages.value.length - 1
@@ -110,19 +110,10 @@ async function sendMessage({ forceFail = false } = {}) {
       messages: buildChatMessages(),
       maxTokens: 900,
       temperature: 0.25,
-      forceFail,
       signal: abortController.signal,
       onDelta(delta) {
         appendAssistantDelta(assistantIndex, delta)
       },
-      mockStream: () =>
-        streamMockWorkbenchReply({
-          question: userContent,
-          onDelta(delta) {
-            appendAssistantDelta(assistantIndex, delta)
-          },
-          signal: abortController.signal,
-        }),
     })
 
     status.value = 'success'
@@ -235,34 +226,6 @@ function buildBusinessContext() {
   ].join('\n')
 }
 
-async function streamMockWorkbenchReply({ question, onDelta, signal }) {
-  const text = [
-    '### 优先处置建议',
-    `- 你的问题是：${question}`,
-    `- 当前异常工单 ${abnormalTasks.value.length} 单，加急未完成 ${urgentTasks.value.length} 单，建议先处理同时满足“异常 + 加急”的工单。`,
-    `- 首要关注：${abnormalTasks.value.map((task) => task.id).slice(0, 3).join('、') || '暂无异常工单'}。`,
-    '',
-    '### 处置顺序',
-    `- 先复核风险设备：${riskyDevices.value.map((device) => `${device.code}${device.status}`).join('、') || '暂无风险设备'}。`,
-    '- 再联系班组长确认物料、设备和质量记录。',
-    '- 最后回到生产任务列表更新异常闭环状态。',
-    '',
-    '### 说明',
-    '- 当前为 Mock 流式兜底；配置 DeepSeek Key 或本地代理后会调用真实大语言模型接口。',
-  ].join('\n')
-
-  for (const char of text) {
-    if (signal?.aborted) {
-      throw new DOMException('AI 对话已取消', 'AbortError')
-    }
-
-    onDelta(char)
-    await new Promise((resolve) => window.setTimeout(resolve, 10))
-  }
-
-  return text
-}
-
 function renderMarkdown(value) {
   const escaped = escapeHtml(value)
   const lines = escaped.split('\n')
@@ -328,16 +291,15 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="ai-workbench">
-    <section class="panel ai-hero">
+    <section class="ai-page-head">
       <div>
         <p class="eyebrow">AI Workbench</p>
         <h2>AI 工作台</h2>
-        <span>DeepSeek 对话 API + 业务 Prompt + 流式输出 + Markdown + 多轮上下文</span>
+        <span>真实 API 对话、业务 Prompt、流式输出、Markdown、多轮上下文</span>
       </div>
       <div class="ai-state-strip">
         <span :class="['ai-state', `state-${status}`]">{{ statusText }}</span>
         <span>{{ aiSource }}</span>
-        <span>{{ hasDeepSeekApiKey() ? '浏览器直连 Key 已配置' : '本地代理 / Mock 兜底' }}</span>
       </div>
     </section>
 
@@ -348,14 +310,7 @@ onBeforeUnmount(() => {
             <h2>业务多轮对话</h2>
             <span>{{ activeProfile.description }}</span>
           </div>
-          <div class="ai-actions">
-            <select v-model="promptMode" :disabled="status === 'loading'" aria-label="AI Prompt 模式">
-              <option v-for="item in chatProfileOptions" :key="item.value" :value="item.value">
-                {{ item.label }}
-              </option>
-            </select>
-            <button type="button" class="secondary-button" @click="clearMessages">清空</button>
-          </div>
+          <button type="button" class="secondary-button" @click="clearMessages">清空对话</button>
         </div>
 
         <p v-if="error" class="feedback error">{{ error }}</p>
@@ -388,32 +343,35 @@ onBeforeUnmount(() => {
               {{ status === 'loading' ? '流式生成中...' : '发送问题' }}
             </button>
             <button v-if="status === 'loading'" type="button" class="secondary-button" @click="cancelMessage">取消</button>
-            <button type="button" class="secondary-button danger-button" :disabled="status === 'loading'" @click="sendMessage({ forceFail: true })">
-              失败演示
-            </button>
           </div>
         </form>
       </section>
 
       <aside class="ai-side-stack">
-        <section class="panel ai-requirement-card">
+        <section class="panel ai-settings-card">
           <div class="section-title compact-title">
-            <h2>AI 要求覆盖</h2>
-            <span>基础 + 加分项</span>
+            <h2>AI 设置</h2>
+            <span>{{ hasDeepSeekApiKey() ? '浏览器直连 Key 已配置' : '建议使用本地代理 Key' }}</span>
           </div>
-          <ul class="requirement-list">
-            <li><strong>对话 API</strong><span>DeepSeek / OpenAI 兼容接口</span></li>
-            <li><strong>状态处理</strong><span>加载中、成功、失败</span></li>
-            <li><strong>界面展示</strong><span>对话气泡、结果卡片、错误提示</span></li>
-            <li><strong>业务 Prompt</strong><span>限定 MOM 生产任务与设备场景</span></li>
-            <li><strong>加分项</strong><span>流式打字、Markdown、多轮上下文、Prompt 对比</span></li>
-          </ul>
+          <label>
+            <span>Prompt 模式</span>
+            <select v-model="promptMode" :disabled="status === 'loading'" aria-label="AI Prompt 模式">
+              <option v-for="item in chatProfileOptions" :key="item.value" :value="item.value">
+                {{ item.label }}
+              </option>
+            </select>
+          </label>
+          <div class="ai-config-list">
+            <span>模型：{{ deepSeekConfig.model }}</span>
+            <span>连接：{{ getDeepSeekConnectionLabel() }}</span>
+            <span>接口：{{ deepSeekConfig.useProxy ? deepSeekConfig.proxyUrl : `${deepSeekConfig.baseUrl}/chat/completions` }}</span>
+          </div>
         </section>
 
         <section class="panel">
           <div class="section-title compact-title">
             <h2>业务上下文</h2>
-            <span>实时读取 mock 数据</span>
+            <span>随问题一起发送</span>
           </div>
           <div class="context-cards">
             <article>
@@ -438,35 +396,35 @@ onBeforeUnmount(() => {
       </aside>
     </section>
 
-    <section class="panel prompt-compare-panel">
-      <div class="section-title">
-        <div>
-          <h2>提示词对比报告</h2>
-          <span>对比不同 Prompt 对同一批 MOM 数据的输出差异</span>
-        </div>
+    <details class="panel prompt-compare-panel">
+      <summary>
+        <span>提示词对比报告</span>
+        <small>加分项：对比不同 Prompt 对同一批 MOM 数据的输出差异</small>
+      </summary>
+      <div class="prompt-compare-body">
         <div class="ai-actions">
           <button type="button" :disabled="comparisonLoading" @click="generatePromptComparison">
             {{ comparisonLoading ? '对比生成中...' : '生成提示词对比' }}
           </button>
           <button v-if="comparisonLoading" type="button" class="secondary-button" @click="cancelComparison">取消</button>
         </div>
-      </div>
 
-      <div class="prompt-compare-grid">
-        <article v-for="item in comparisonItems" :key="item.value" class="prompt-card">
-          <div>
-            <strong>{{ item.label }}</strong>
-            <span>{{ item.description }}</span>
-          </div>
-          <small :class="['ai-state', `state-${item.status}`]">{{ item.status === 'success' ? '成功' : item.status === 'loading' ? '加载中' : item.status === 'error' ? '失败' : '待生成' }}</small>
-          <div v-if="item.output" class="ai-summary markdown-summary" v-html="renderMarkdown(item.output)"></div>
-          <p v-else>点击生成后展示该提示词对生产日报的影响。</p>
-          <details class="prompt-preview compact-prompt">
-            <summary>查看 Prompt</summary>
-            <pre>{{ buildReportPrompt({ stats, tasks: productionState.tasks, devices: productionState.devices, abnormalTypes, promptMode: item.value }).system }}</pre>
-          </details>
-        </article>
+        <div class="prompt-compare-grid">
+          <article v-for="item in comparisonItems" :key="item.value" class="prompt-card">
+            <div>
+              <strong>{{ item.label }}</strong>
+              <span>{{ item.description }}</span>
+            </div>
+            <small :class="['ai-state', `state-${item.status}`]">{{ item.status === 'success' ? '成功' : item.status === 'loading' ? '加载中' : item.status === 'error' ? '失败' : '待生成' }}</small>
+            <div v-if="item.output" class="ai-summary markdown-summary" v-html="renderMarkdown(item.output)"></div>
+            <p v-else>点击生成后展示该提示词对生产日报的影响。</p>
+            <details class="prompt-preview compact-prompt">
+              <summary>查看 Prompt</summary>
+              <pre>{{ buildReportPrompt({ stats, tasks: productionState.tasks, devices: productionState.devices, abnormalTypes, promptMode: item.value }).system }}</pre>
+            </details>
+          </article>
+        </div>
       </div>
-    </section>
+    </details>
   </section>
 </template>

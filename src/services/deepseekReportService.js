@@ -40,7 +40,7 @@ export function getDeepSeekConnectionLabel() {
     return 'DeepSeek 本地代理'
   }
 
-  return config.apiKey ? 'DeepSeek 浏览器直连' : 'Mock 流式兜底'
+  return config.apiKey ? 'DeepSeek 浏览器直连' : '未配置 API Key'
 }
 
 export function buildReportPrompt({ stats, tasks, devices, abnormalTypes, promptMode = 'standard' }) {
@@ -107,7 +107,6 @@ export async function generateDeepSeekReportSummary({
     temperature: 0.3,
     signal,
     onDelta,
-    mockStream: () => streamMockSummary({ stats, tasks, devices, promptMode, onDelta, signal }),
   })
 }
 
@@ -118,16 +117,15 @@ export async function streamDeepSeekMessages({
   maxTokens = 800,
   temperature = 0.3,
   forceFail = false,
-  mockStream,
 }) {
   if (forceFail) {
-    throw new Error('AI 请求失败演示：当前操作用于验证失败状态提示。')
+    throw new Error('AI 请求失败：当前操作用于验证失败状态提示。')
   }
 
   const config = getDeepSeekConfig()
 
   if (!config.useProxy && !config.apiKey) {
-    return mockStream ? mockStream() : streamMockChat({ messages, onDelta, signal })
+    throw new Error('未配置 DeepSeek API Key。请在 .env 中配置 DEEPSEEK_API_KEY，或设置 VITE_DEEPSEEK_USE_PROXY=false 并配置 VITE_DEEPSEEK_API_KEY。')
   }
 
   let response = await requestDeepSeek({
@@ -142,7 +140,8 @@ export async function streamDeepSeekMessages({
 
   if (config.useProxy && [404, 501].includes(response.status)) {
     if (!config.apiKey) {
-      return mockStream ? mockStream() : streamMockChat({ messages, onDelta, signal })
+      const detail = await response.text()
+      throw new Error(`DeepSeek 本地代理未配置 API Key：${detail.slice(0, 120)}`)
     }
 
     response = await requestDeepSeek({
@@ -240,59 +239,4 @@ async function readSseStream(body, onDelta) {
   }
 
   return fullText
-}
-
-async function streamMockSummary({ stats, tasks, devices, promptMode, onDelta, signal }) {
-  const urgentTasks = tasks.filter((task) => task.urgent && task.status !== '已完成')
-  const abnormalDevices = devices.filter((device) => device.status === '异常' || device.status === '预警')
-  const profile = promptProfiles[promptMode] ?? promptProfiles.standard
-  const text = [
-    `### 整体表现\n- 今日累计产出 ${stats.totalOutput} 件，计划 ${stats.plannedOutput} 件，完成率 ${stats.completionRate}%。\n- 当前使用「${profile.label}」提示词模式生成小结。`,
-    `### 主要风险\n- 异常工单 ${stats.abnormalCount} 单，首要风险为 ${stats.topRisk}。\n- 加急未完成工单：${urgentTasks.map((task) => task.id).join('、') || '无'}。`,
-    `### 设备情况\n- 平均设备利用率 ${stats.deviceUtilization}%。\n- 需关注设备：${abnormalDevices.map((device) => `${device.code}${device.status}`).join('、') || '无'}。`,
-    '### 下一步建议\n- 优先复核异常报工和风险设备，再根据产线完成率调整排产节拍。',
-  ].join('\n\n')
-
-  let output = ''
-
-  for (const char of text) {
-    if (signal?.aborted) {
-      throw new DOMException('AI 小结生成已取消', 'AbortError')
-    }
-
-    output += char
-    onDelta?.(char)
-    await new Promise((resolve) => window.setTimeout(resolve, 10))
-  }
-
-  return output
-}
-
-async function streamMockChat({ messages, onDelta, signal }) {
-  const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content ?? ''
-  const text = [
-    '### AI 处理建议',
-    `- 已接收你的问题：${latestUserMessage.slice(0, 80) || '请补充生产问题'}`,
-    '- 当前为 Mock 流式兜底，真实环境会优先调用 DeepSeek / OpenAI 兼容接口。',
-    '- 建议先核对异常工单、加急任务和风险设备，再安排责任人闭环。',
-    '',
-    '### 下一步动作',
-    '- 在生产任务页确认工单状态。',
-    '- 在设备工序页检查预警设备。',
-    '- 在生产报表页生成管理层摘要。',
-  ].join('\n')
-
-  let output = ''
-
-  for (const char of text) {
-    if (signal?.aborted) {
-      throw new DOMException('AI 对话已取消', 'AbortError')
-    }
-
-    output += char
-    onDelta?.(char)
-    await new Promise((resolve) => window.setTimeout(resolve, 10))
-  }
-
-  return output
 }

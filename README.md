@@ -101,6 +101,21 @@ npm run preview
 npm run lint
 ```
 
+## AI 接入配置
+
+AI 工作台和 AI 报表小结使用 DeepSeek Chat Completions，接口路径为 `/chat/completions`，默认模型为 `deepseek-v4-flash`。
+
+推荐使用本地代理，避免在浏览器中暴露 Key：
+
+```sh
+DEEPSEEK_API_KEY=你的 DeepSeek Key
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+VITE_DEEPSEEK_MODEL=deepseek-v4-flash
+VITE_DEEPSEEK_USE_PROXY=true
+```
+
+如需静态演示直连，可设置 `VITE_DEEPSEEK_USE_PROXY=false` 并配置 `VITE_DEEPSEEK_API_KEY`。未配置 Key 时，页面会显示失败状态，不再使用模拟生成结果。
+
 ## 测试记录
 
 已完成以下联调测试：
@@ -137,4 +152,4 @@ npm run lint
 
 ## 项目说明
 
-本项目使用本地 mock 数据模拟生产任务、设备状态和报表统计数据，暂未接入真实后端业务接口。AI 工作台和 AI 报表小结优先通过 Vite 本地代理调用 DeepSeek Chat Completions；未配置 Key 时自动使用 mock 流式兜底，便于课堂演示加载中、成功、失败、流式输出、Markdown 渲染、多轮上下文和提示词对比效果。
+本项目使用本地 mock 数据模拟生产任务、设备状态和报表统计数据，暂未接入真实后端业务接口。AI 工作台和 AI 报表小结通过 Vite 本地代理或浏览器直连调用 DeepSeek Chat Completions；未配置 Key 时会显示失败提示，便于演示加载中、成功、失败、流式输出、Markdown 渲染、多轮上下文和提示词对比效果。

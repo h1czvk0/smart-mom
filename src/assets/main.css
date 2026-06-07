@@ -739,22 +739,22 @@ td small {
 
 .ai-workbench {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
-.ai-hero {
+.ai-page-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
 }
 
-.ai-hero h2 {
+.ai-page-head h2 {
   margin: 4px 0 6px;
   font-size: 28px;
 }
 
-.ai-hero span,
+.ai-page-head span,
 .prompt-card p {
   color: #9fb2c6;
 }
@@ -800,8 +800,8 @@ td small {
 
 .ai-workbench-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.8fr);
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
   align-items: start;
 }
 
@@ -819,7 +819,7 @@ td small {
 .chat-feed {
   display: grid;
   gap: 12px;
-  max-height: 560px;
+  max-height: 520px;
   overflow: auto;
   padding-right: 4px;
 }
@@ -891,30 +891,31 @@ td small {
   gap: 10px;
 }
 
-.danger-button {
-  color: #fee2e2;
-  background: #7f1d1d;
+.ai-settings-card {
+  display: grid;
+  gap: 14px;
 }
 
-.requirement-list {
+.ai-settings-card label,
+.ai-config-list {
   display: grid;
-  gap: 10px;
-  padding: 0;
-  margin: 0;
-  list-style: none;
+  gap: 8px;
 }
 
-.requirement-list li {
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 10px;
-  padding: 10px;
+.ai-settings-card label > span,
+.ai-config-list span {
+  color: #9fb2c6;
+  font-size: 13px;
+}
+
+.ai-config-list span {
+  padding: 8px 10px;
   border: 1px solid #1f3a55;
-  border-radius: 8px;
+  border-radius: 6px;
   background: #091827;
+  overflow-wrap: anywhere;
 }
 
-.requirement-list span,
 .context-cards span,
 .prompt-card span {
   color: #9fb2c6;
@@ -961,6 +962,34 @@ td small {
 
 .compact-prompt {
   margin-top: 0;
+}
+
+.prompt-compare-panel {
+  display: block;
+}
+
+.prompt-compare-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.prompt-compare-panel > summary span {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.prompt-compare-panel > summary small {
+  color: #9fb2c6;
+}
+
+.prompt-compare-body {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
 }
 
 .detail-summary,
@@ -1237,11 +1266,13 @@ td small {
 [data-theme='light'] .detail-summary span,
 [data-theme='light'] .report-kpis span,
 [data-theme='light'] .ai-meta span,
-[data-theme='light'] .ai-hero span,
-[data-theme='light'] .requirement-list span,
+[data-theme='light'] .ai-page-head span,
+[data-theme='light'] .ai-settings-card label > span,
+[data-theme='light'] .ai-config-list span,
 [data-theme='light'] .context-cards span,
 [data-theme='light'] .prompt-card span,
 [data-theme='light'] .prompt-card p,
+[data-theme='light'] .prompt-compare-panel > summary small,
 [data-theme='light'] .device-detail dt {
   color: #5d6d82;
 }
@@ -1286,6 +1317,8 @@ td small {
 [data-theme='light'] .kpi-card strong,
 [data-theme='light'] .detail-summary strong,
 [data-theme='light'] .report-kpis strong,
+[data-theme='light'] .context-cards strong,
+[data-theme='light'] .prompt-compare-panel > summary span,
 [data-theme='light'] .device-detail dd {
   color: #101827;
 }
@@ -1303,12 +1336,19 @@ td small {
 [data-theme='light'] .ai-meta span,
 [data-theme='light'] .prompt-preview,
 [data-theme='light'] .chat-bubble,
-[data-theme='light'] .requirement-list li,
+[data-theme='light'] .ai-config-list span,
 [data-theme='light'] .context-cards article,
 [data-theme='light'] .prompt-card,
 [data-theme='light'] tbody tr {
   border-color: #d4e0ea;
   background: #f8fbfd;
+}
+
+[data-theme='light'] .ai-summary,
+[data-theme='light'] .chat-bubble,
+[data-theme='light'] .markdown-summary p,
+[data-theme='light'] .markdown-summary li {
+  color: #26364a;
 }
 
 [data-theme='light'] .chat-bubble.user {
@@ -1492,7 +1532,7 @@ td small {
     grid-template-columns: 1fr;
   }
 
-  .ai-hero {
+  .ai-page-head {
     grid-template-columns: 1fr;
   }
 
