@@ -85,6 +85,7 @@ const comparisonLoading = ref(false)
 const chatFeed = ref(null)
 const shouldFollowMessages = ref(true)
 const workbarPinned = ref(window.localStorage.getItem(WORKBAR_PIN_KEY) === 'true')
+const suppressWorkbarHover = ref(false)
 let messageId = 2
 let abortController = null
 let comparisonAbortController = null
@@ -246,9 +247,35 @@ function clearMessages() {
   scheduleScrollToBottom(true)
 }
 
-function selectProfile(value) {
+function collapseWorkbarAfterAction(event) {
+  event.currentTarget.blur()
+
+  if (!workbarPinned.value) {
+    suppressWorkbarHover.value = true
+  }
+}
+
+function startNewChat(event) {
+  clearMessages()
+  collapseWorkbarAfterAction(event)
+}
+
+function selectProfile(value, event) {
   promptMode.value = value
   activeTool.value = 'chat'
+  collapseWorkbarAfterAction(event)
+}
+
+function selectTool(value, event) {
+  activeTool.value = value
+  collapseWorkbarAfterAction(event)
+}
+
+function toggleWorkbarPin(event) {
+  const wasPinned = workbarPinned.value
+  event.currentTarget.blur()
+  workbarPinned.value = !workbarPinned.value
+  suppressWorkbarHover.value = wasPinned
 }
 
 watch(activeTool, (tool) => {
@@ -330,7 +357,10 @@ onBeforeUnmount(() => {
 
 <template>
   <section :class="['ai-chat-shell', { 'workbar-pinned': workbarPinned }]">
-    <aside class="ai-workbar">
+    <aside
+      :class="['ai-workbar', { 'workbar-suppress-hover': suppressWorkbarHover }]"
+      @mouseleave="suppressWorkbarHover = false"
+    >
       <div class="ai-workbar-head">
         <button
           type="button"
@@ -338,7 +368,7 @@ onBeforeUnmount(() => {
           :class="{ active: workbarPinned }"
           :title="workbarPinned ? '取消固定工具栏' : '固定工具栏'"
           :aria-label="workbarPinned ? '取消固定工具栏' : '固定工具栏'"
-          @click="workbarPinned = !workbarPinned"
+          @click="toggleWorkbarPin"
         >
           <PinOff v-if="workbarPinned" :size="18" />
           <Pin v-else :size="18" />
@@ -349,7 +379,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <button type="button" class="workbar-primary" title="新对话" @click="clearMessages">
+      <button type="button" class="workbar-primary" title="新对话" @click="startNewChat">
         <MessageSquarePlus :size="20" />
         <span class="workbar-label">新对话</span>
       </button>
@@ -362,7 +392,7 @@ onBeforeUnmount(() => {
           type="button"
           :class="{ active: promptMode === item.value && activeTool === 'chat' }"
           :title="item.label"
-          @click="selectProfile(item.value)"
+          @click="selectProfile(item.value, $event)"
         >
           <component :is="item.icon" :size="20" />
           <span class="workbar-label">{{ item.label }}</span>
@@ -377,7 +407,7 @@ onBeforeUnmount(() => {
           type="button"
           :class="{ active: activeTool === item.value }"
           :title="item.label"
-          @click="activeTool = item.value"
+          @click="selectTool(item.value, $event)"
         >
           <component :is="item.icon" :size="20" />
           <span class="workbar-label">{{ item.label }}</span>

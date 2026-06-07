@@ -9,18 +9,20 @@ import {
   Pin,
   PinOff,
 } from '@lucide/vue'
+import { ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
-defineProps({
+const props = defineProps({
   pinned: {
     type: Boolean,
     required: true,
   },
 })
 
-defineEmits(['toggle-pin'])
+const emit = defineEmits(['toggle-pin'])
 
 const route = useRoute()
+const suppressHover = ref(false)
 const menus = [
   { to: '/dashboard', label: '控制台首页', name: 'dashboard', icon: LayoutDashboard },
   { to: '/tasks', label: '生产任务', name: 'tasks', icon: ClipboardList },
@@ -41,10 +43,25 @@ function isActive(item) {
 
   return route.path === item.to
 }
+
+function collapseAfterSelection(event) {
+  event.currentTarget.blur()
+
+  if (!props.pinned) {
+    suppressHover.value = true
+  }
+}
+
+function togglePin(event) {
+  const wasPinned = props.pinned
+  event.currentTarget.blur()
+  emit('toggle-pin')
+  suppressHover.value = wasPinned
+}
 </script>
 
 <template>
-  <aside class="sidebar">
+  <aside :class="['sidebar', { 'sidebar-suppress-hover': suppressHover }]" @mouseleave="suppressHover = false">
     <div class="brand">
       <span class="brand-mark">M</span>
       <div class="sidebar-copy">
@@ -59,7 +76,7 @@ function isActive(item) {
         :class="{ active: pinned }"
         :title="pinned ? '取消固定主导航' : '固定主导航'"
         :aria-label="pinned ? '取消固定主导航' : '固定主导航'"
-        @click="$emit('toggle-pin')"
+        @click="togglePin"
       >
         <PinOff v-if="pinned" :size="18" />
         <Pin v-else :size="18" />
@@ -73,6 +90,7 @@ function isActive(item) {
         :class="{ 'is-active': isActive(item) }"
         :to="item.to"
         :title="item.label"
+        @click="collapseAfterSelection"
       >
         <component :is="item.icon" :size="20" />
         <span class="sidebar-copy">{{ item.label }}</span>
