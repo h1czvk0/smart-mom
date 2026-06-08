@@ -233,7 +233,7 @@ function setMessage(text, type) {
             {{ record.advanced === false ? `异常阻断，仍停留在 ${record.progress}%` : `工序进度更新至 ${record.progress}%` }}
           </span>
           <span v-else-if="record.finishedQty !== undefined">
-            历史数量报工：完成 {{ record.finishedQty }} 件，不良 {{ record.badQty }} 件
+            整批报工：完成 {{ record.finishedQty }} 件，不良 {{ record.badQty }} 件
           </span>
           <small>{{ record.time }} / {{ record.remark }}</small>
         </article>
