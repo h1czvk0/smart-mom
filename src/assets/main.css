@@ -1431,6 +1431,37 @@ td small {
   gap: 10px;
 }
 
+.api-key-panel {
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+  border: 1px solid #1f3a55;
+  border-radius: 8px;
+  padding: 14px;
+  background: #091827;
+  animation: panel-in 260ms ease both;
+}
+
+.api-key-panel div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.api-key-panel strong {
+  color: #e7eef8;
+}
+
+.api-key-panel span,
+.api-key-panel small {
+  color: #9fb2c6;
+}
+
+.api-key-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
 .ai-settings-card {
   display: grid;
   gap: 14px;
@@ -2099,6 +2130,7 @@ td small {
 [data-theme='light'] .ai-meta span,
 [data-theme='light'] .prompt-preview,
 [data-theme='light'] .chat-bubble,
+[data-theme='light'] .api-key-panel,
 [data-theme='light'] .ai-config-list span,
 [data-theme='light'] .context-cards article,
 [data-theme='light'] .prompt-card,
@@ -2106,6 +2138,15 @@ td small {
 [data-theme='light'] tbody tr {
   border-color: #d4e0ea;
   background: #f8fbfd;
+}
+
+[data-theme='light'] .api-key-panel strong {
+  color: #152336;
+}
+
+[data-theme='light'] .api-key-panel span,
+[data-theme='light'] .api-key-panel small {
+  color: #52677e;
 }
 
 [data-theme='light'] .process-stage.is-active,

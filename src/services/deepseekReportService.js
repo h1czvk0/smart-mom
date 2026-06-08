@@ -19,9 +19,39 @@ export const promptProfiles = {
   },
 }
 
-export function getDeepSeekConfig() {
+const BROWSER_API_KEY_STORAGE = 'smart-mom-deepseek-api-key'
+
+export function getSavedDeepSeekApiKey() {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  return window.localStorage.getItem(BROWSER_API_KEY_STORAGE)?.trim() ?? ''
+}
+
+export function saveDeepSeekApiKey(apiKey) {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  const normalized = apiKey.trim()
+
+  if (normalized) {
+    window.localStorage.setItem(BROWSER_API_KEY_STORAGE, normalized)
+  } else {
+    window.localStorage.removeItem(BROWSER_API_KEY_STORAGE)
+  }
+
+  return normalized
+}
+
+export function getDeepSeekConfig(browserApiKey = getSavedDeepSeekApiKey()) {
+  const envApiKey = import.meta.env.VITE_DEEPSEEK_API_KEY?.trim() ?? ''
+  const savedApiKey = browserApiKey.trim()
+
   return {
-    apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY?.trim() ?? '',
+    apiKey: envApiKey || savedApiKey,
+    apiKeySource: envApiKey ? 'env' : savedApiKey ? 'browser' : '',
     baseUrl: (import.meta.env.VITE_DEEPSEEK_BASE_URL?.trim() || 'https://api.deepseek.com').replace(/\/$/, ''),
     model: import.meta.env.VITE_DEEPSEEK_MODEL?.trim() || 'deepseek-v4-flash',
     proxyUrl: '/api/deepseek/chat/completions',
@@ -29,8 +59,8 @@ export function getDeepSeekConfig() {
   }
 }
 
-export function hasDeepSeekApiKey() {
-  return Boolean(getDeepSeekConfig().apiKey)
+export function hasDeepSeekApiKey(browserApiKey) {
+  return Boolean(getDeepSeekConfig(browserApiKey).apiKey)
 }
 
 export function getDeepSeekConnectionLabel() {
@@ -123,7 +153,7 @@ export async function streamDeepSeekMessages({
   const config = getDeepSeekConfig()
 
   if (!config.useProxy && !config.apiKey) {
-    throw new Error('未配置 DeepSeek API Key。请在 .env 中配置 DEEPSEEK_API_KEY，或设置 VITE_DEEPSEEK_USE_PROXY=false 并配置 VITE_DEEPSEEK_API_KEY。')
+    throw new Error('未配置 DeepSeek API Key。请先在页面中填写并保存 API Key。')
   }
 
   let fullText = ''

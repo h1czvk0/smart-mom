@@ -20,8 +20,10 @@ import {
   generateDeepSeekReportSummary,
   getDeepSeekConnectionLabel,
   getDeepSeekConfig,
+  getSavedDeepSeekApiKey,
   hasDeepSeekApiKey,
   promptProfiles,
+  saveDeepSeekApiKey,
   streamDeepSeekMessages,
 } from '../services/deepseekReportService'
 import { getNextWorkflowAction, productionState } from '../stores/productionStore'
@@ -64,6 +66,9 @@ const input = ref('请帮我判断今天优先处理哪些异常工单，并给�
 const status = ref('idle')
 const error = ref('')
 const aiSource = ref(getDeepSeekConnectionLabel())
+const savedApiKey = ref(getSavedDeepSeekApiKey())
+const apiKeyInput = ref('')
+const apiKeyMessage = ref('')
 const chatProfileOptions = Object.entries(chatProfiles).map(([value, profile]) => ({
   value,
   ...profile,
@@ -118,8 +123,29 @@ const currentPromptPreview = computed(() => [
   '业务上下文：',
   contextPreview.value,
 ].join('\n'))
-const deepSeekConfig = computed(() => getDeepSeekConfig())
+const deepSeekConfig = computed(() => getDeepSeekConfig(savedApiKey.value))
+const deepSeekKeyReady = computed(() => hasDeepSeekApiKey(savedApiKey.value))
+const deepSeekKeySource = computed(() => {
+  if (deepSeekConfig.value.apiKeySource === 'env') return '环境变量 Key 已配置'
+  if (deepSeekConfig.value.apiKeySource === 'browser') return '浏览器已保存 Key'
+  return '未配置 API Key'
+})
 const workspaceTitle = computed(() => workspaceTools.find((tool) => tool.value === activeTool.value)?.label ?? '对话')
+
+function saveBrowserApiKey() {
+  const normalized = saveDeepSeekApiKey(apiKeyInput.value)
+
+  if (!normalized) {
+    apiKeyMessage.value = '请输入有效的 API Key。'
+    return
+  }
+
+  savedApiKey.value = normalized
+  apiKeyInput.value = ''
+  apiKeyMessage.value = 'API Key 已保存。'
+  error.value = ''
+  aiSource.value = `${getDeepSeekConnectionLabel()} · ${deepSeekConfig.value.model}`
+}
 
 async function sendMessage() {
   const content = input.value.trim()
@@ -428,6 +454,24 @@ onBeforeUnmount(() => {
         <button v-if="activeTool === 'chat'" type="button" class="secondary-button" @click="clearMessages">清空对话</button>
       </header>
 
+      <form v-if="!deepSeekKeyReady" class="api-key-panel" @submit.prevent="saveBrowserApiKey">
+        <div>
+          <strong>配置 DeepSeek API Key</strong>
+          <span>本地代理未配置时，将使用保存的 Key 直接调用 DeepSeek。</span>
+        </div>
+        <div class="api-key-row">
+          <input
+            v-model.trim="apiKeyInput"
+            type="password"
+            autocomplete="off"
+            placeholder="请输入 DeepSeek API Key"
+            aria-label="DeepSeek API Key"
+          />
+          <button type="submit">保存</button>
+        </div>
+        <small v-if="apiKeyMessage">{{ apiKeyMessage }}</small>
+      </form>
+
       <p v-if="error && activeTool === 'chat'" class="feedback error">{{ error }}</p>
 
       <template v-if="activeTool === 'chat'">
@@ -497,7 +541,7 @@ onBeforeUnmount(() => {
             <span>模型：{{ deepSeekConfig.model }}</span>
             <span>连接：{{ getDeepSeekConnectionLabel() }}</span>
             <span>接口：{{ deepSeekConfig.useProxy ? deepSeekConfig.proxyUrl : `${deepSeekConfig.baseUrl}/chat/completions` }}</span>
-            <span>{{ hasDeepSeekApiKey() ? '浏览器直连 Key 已配置' : '本地代理 Key' }}</span>
+            <span>{{ deepSeekKeySource }}</span>
           </div>
         </div>
         <div class="prompt-preview">
