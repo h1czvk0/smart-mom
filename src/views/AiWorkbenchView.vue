@@ -24,7 +24,7 @@ import {
   promptProfiles,
   streamDeepSeekMessages,
 } from '../services/deepseekReportService'
-import { productionState } from '../stores/productionStore'
+import { getNextWorkflowAction, productionState } from '../stores/productionStore'
 
 const markdown = new MarkdownIt({
   breaks: true,
@@ -333,9 +333,9 @@ function buildComparisonItems(initialStatus = 'idle') {
 
 function buildBusinessContext() {
   return [
-    `统计：累计产出 ${stats.value.totalOutput} 件，计划 ${stats.value.plannedOutput} 件，完成率 ${stats.value.completionRate}%，异常工单 ${stats.value.abnormalCount} 单，设备平均利用率 ${stats.value.deviceUtilization}%。`,
-    `加急任务：${urgentTasks.value.map((task) => `${task.id}/${task.product}/${task.line}/${task.progress}%`).join('；') || '无'}`,
-    `异常任务：${abnormalTasks.value.map((task) => `${task.id}/${task.product}/${task.abnormalType || '生产异常'}/${task.dueDate}`).join('；') || '无'}`,
+    `统计：累计产出 ${stats.value.totalOutput} 件，计划 ${stats.value.plannedOutput} 件，工序平均进度 ${stats.value.completionRate}%，异常工单 ${stats.value.abnormalCount} 单，设备平均利用率 ${stats.value.deviceUtilization}%。`,
+    `加急任务：${urgentTasks.value.map((task) => `${task.id}/${task.product}/${task.process}/${task.progress}%/下一步${getNextWorkflowAction(task)?.action ?? '已闭环'}`).join('；') || '无'}`,
+    `异常任务：${abnormalTasks.value.map((task) => `${task.id}/${task.product}/${task.abnormalType || '生产异常'}/${task.deadline}`).join('；') || '无'}`,
     `风险设备：${riskyDevices.value.map((device) => `${device.code}/${device.name}/${device.status}/${device.utilization}%`).join('；') || '无'}`,
   ].join('\n')
 }

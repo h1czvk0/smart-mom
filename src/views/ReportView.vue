@@ -26,7 +26,7 @@ const statusData = computed(() =>
 
 const chartVersion = computed(() =>
   [
-    productionState.tasks.map((task) => `${task.id}:${task.status}:${task.finishedQty}`).join('|'),
+    productionState.tasks.map((task) => `${task.id}:${task.status}:${task.progress}:${task.finishedQty}`).join('|'),
     productionState.devices.map((device) => `${device.code}:${device.status}:${device.utilization}`).join('|'),
   ].join('::'),
 )
@@ -34,12 +34,13 @@ const chartVersion = computed(() =>
 const lineCompletionData = computed(() =>
   ['A 产线', 'B 产线', 'C 产线', 'D 产线'].map((line) => {
     const lineTasks = productionState.tasks.filter((task) => task.line === line)
-    const planned = lineTasks.reduce((sum, task) => sum + task.planQty, 0)
-    const finished = lineTasks.reduce((sum, task) => sum + task.finishedQty, 0)
 
     return {
       line,
-      rate: planned === 0 ? 0 : Math.round((finished / planned) * 100),
+      rate:
+        lineTasks.length === 0
+          ? 0
+          : Math.round(lineTasks.reduce((sum, task) => sum + task.progress, 0) / lineTasks.length),
     }
   }),
 )
@@ -227,7 +228,7 @@ onBeforeUnmount(() => {
         <article>
           <span>完成率</span>
           <strong>{{ stats.completionRate }}%</strong>
-          <small>按工单完成数量计算</small>
+          <small>按全部工单的工序节点进度计算</small>
         </article>
         <article>
           <span>异常工单</span>
@@ -269,7 +270,7 @@ onBeforeUnmount(() => {
 
       <article class="panel chart-card">
         <div class="section-title compact-title">
-          <h2>产线完成率</h2>
+          <h2>产线工序进度</h2>
           <span>A / B / C / D</span>
         </div>
         <div ref="lineChart" class="chart-box"></div>

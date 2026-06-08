@@ -8,6 +8,7 @@ export const tasks = [
     owner: '张工',
     status: '生产中',
     progress: 72,
+    workflowStep: 4,
     priority: '高',
     urgent: true,
     planQty: 1200,
@@ -24,6 +25,7 @@ export const tasks = [
     owner: '李工',
     status: '生产中',
     progress: 55,
+    workflowStep: 3,
     priority: '中',
     urgent: false,
     planQty: 800,
@@ -40,6 +42,7 @@ export const tasks = [
     owner: '陈工',
     status: '待生产',
     progress: 0,
+    workflowStep: 0,
     priority: '中',
     urgent: false,
     planQty: 450,
@@ -56,6 +59,7 @@ export const tasks = [
     owner: '王工',
     status: '待生产',
     progress: 18,
+    workflowStep: 1,
     priority: '中',
     urgent: false,
     planQty: 600,
@@ -72,6 +76,7 @@ export const tasks = [
     owner: '赵工',
     status: '异常',
     progress: 43,
+    workflowStep: 3,
     priority: '高',
     urgent: true,
     planQty: 900,
@@ -88,6 +93,7 @@ export const tasks = [
     owner: '孙工',
     status: '已完成',
     progress: 100,
+    workflowStep: 6,
     priority: '低',
     urgent: false,
     planQty: 500,
@@ -104,6 +110,7 @@ export const tasks = [
     owner: '周工',
     status: '生产中',
     progress: 64,
+    workflowStep: 4,
     priority: '高',
     urgent: true,
     planQty: 1000,
@@ -120,6 +127,7 @@ export const tasks = [
     owner: '钱工',
     status: '异常',
     progress: 68,
+    workflowStep: 4,
     priority: '高',
     urgent: true,
     planQty: 300,
@@ -136,6 +144,7 @@ export const tasks = [
     owner: '吴工',
     status: '生产中',
     progress: 81,
+    workflowStep: 5,
     priority: '中',
     urgent: false,
     planQty: 700,
@@ -152,6 +161,7 @@ export const tasks = [
     owner: '郑工',
     status: '已完成',
     progress: 100,
+    workflowStep: 6,
     priority: '低',
     urgent: false,
     planQty: 960,
@@ -168,6 +178,7 @@ export const tasks = [
     owner: '刘工',
     status: '待生产',
     progress: 12,
+    workflowStep: 1,
     priority: '低',
     urgent: false,
     planQty: 1100,
@@ -184,6 +195,7 @@ export const tasks = [
     owner: '黄工',
     status: '异常',
     progress: 35,
+    workflowStep: 2,
     priority: '中',
     urgent: false,
     planQty: 520,
@@ -467,7 +479,10 @@ export function buildKpis(sourceTasks = tasks, sourceDevices = devices) {
 export function buildReportStats(sourceTasks = tasks, sourceDevices = devices) {
   const totalOutput = sourceTasks.reduce((sum, task) => sum + task.finishedQty, 0)
   const plannedOutput = sourceTasks.reduce((sum, task) => sum + task.planQty, 0)
-  const completionRate = Math.round((totalOutput / plannedOutput) * 100)
+  const completionRate =
+    sourceTasks.length === 0
+      ? 0
+      : Math.round(sourceTasks.reduce((sum, task) => sum + task.progress, 0) / sourceTasks.length)
   const abnormalCount = sourceTasks.filter((task) => task.status === '异常').length
   const deviceUtilization = Math.round(
     sourceDevices.reduce((sum, device) => sum + device.utilization, 0) / sourceDevices.length,
