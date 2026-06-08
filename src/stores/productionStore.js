@@ -59,11 +59,15 @@ function normalizeTask(source) {
 }
 
 function normalizeState(source) {
-  return {
+  const state = {
     tasks: source.tasks.map(normalizeTask),
     devices: clone(source.devices),
     reportRecords: clone(source.reportRecords),
   }
+
+  syncDeviceStatusesFromReports(state)
+
+  return state
 }
 
 function getDefaultState() {
@@ -124,6 +128,47 @@ function createTaskId() {
     }, 0) + 1
 
   return `${prefix}${String(sequence).padStart(3, '0')}`
+}
+
+function parseDeviceCode(deviceName) {
+  return String(deviceName ?? '').trim().split(/\s+/)[0]
+}
+
+function findDeviceByTaskDevice(deviceList, taskDevice) {
+  const code = parseDeviceCode(taskDevice)
+
+  return deviceList.find((device) => device.code === code || `${device.code} ${device.name}` === taskDevice)
+}
+
+function getDeviceStatusFromReport(record) {
+  if (record.status === '异常') {
+    return '异常'
+  }
+
+  return Number(record.badQty) > 0 ? '预警' : '运行'
+}
+
+function updateDeviceFromReport(state, task, record) {
+  const device = findDeviceByTaskDevice(state.devices, task.device)
+
+  if (!device) {
+    return
+  }
+
+  device.status = getDeviceStatusFromReport(record)
+  device.currentTask = task.id
+}
+
+function syncDeviceStatusesFromReports(state) {
+  const records = [...state.reportRecords].sort((a, b) => new Date(a.time) - new Date(b.time))
+
+  records.forEach((record) => {
+    const task = state.tasks.find((item) => item.id === record.taskId)
+
+    if (task) {
+      updateDeviceFromReport(state, task, record)
+    }
+  })
 }
 
 export function getWorkflowProgress(step) {
@@ -227,6 +272,7 @@ export function submitTaskReport(taskId, payload) {
   const nextAction = getNextWorkflowAction(task)
   const abnormalText = String(payload.abnormalText ?? '').trim()
   const remark = String(payload.remark ?? '').trim()
+  const badQty = Math.max(0, Math.trunc(Number(payload.badQty) || 0))
 
   if (!nextAction) {
     throw new Error('该任务已完成全部工序，不能继续报工。')
@@ -238,6 +284,10 @@ export function submitTaskReport(taskId, payload) {
 
   if (payload.abnormal && !abnormalText) {
     throw new Error('异常报工必须填写异常说明。')
+  }
+
+  if (badQty > task.planQty) {
+    throw new Error(`不良数量不能超过计划数量 ${task.planQty}。`)
   }
 
   if (payload.abnormal) {
@@ -265,11 +315,13 @@ export function submitTaskReport(taskId, payload) {
     progress: task.progress,
     advanced: !payload.abnormal,
     device: task.device,
+    badQty,
     status: payload.abnormal ? '异常' : '正常',
     remark: payload.abnormal ? abnormalText : remark || `${nextAction.action}已确认。`,
   }
 
   productionState.reportRecords.unshift(record)
+  updateDeviceFromReport(productionState, task, record)
   saveProductionState()
 
   return record

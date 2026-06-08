@@ -16,6 +16,7 @@ import {
 const route = useRoute()
 const task = computed(() => findTaskById(route.params.id) ?? productionState.tasks[0])
 const form = reactive({
+  badQty: 0,
   abnormal: false,
   abnormalText: '',
   remark: '',
@@ -26,6 +27,7 @@ const messageType = ref('success')
 watch(
   task,
   () => {
+    form.badQty = 0
     form.abnormal = false
     form.abnormalText = ''
     form.remark = ''
@@ -63,6 +65,7 @@ function submitReport() {
     form.abnormal = false
     form.abnormalText = ''
     form.remark = ''
+    form.badQty = 0
 
     if (!record.advanced) {
       setMessage(`异常已记录，工序未推进。处理后仍需执行“${action}”。`, 'warning')
@@ -185,6 +188,10 @@ function setMessage(text, type) {
           <strong>{{ task.device }}</strong>
           <small>创建任务时已锁定，后续报工不可更改</small>
         </div>
+        <label>
+          本次不良数量
+          <input v-model.number="form.badQty" type="number" min="0" step="1" :disabled="!nextAction" />
+        </label>
         <label class="check-inline">
           <input v-model="form.abnormal" type="checkbox" :disabled="!nextAction" />
           本次报工存在异常
@@ -231,6 +238,7 @@ function setMessage(text, type) {
           <span>{{ record.device }}</span>
           <span v-if="record.progress !== undefined">
             {{ record.advanced === false ? `异常阻断，仍停留在 ${record.progress}%` : `工序进度更新至 ${record.progress}%` }}
+            <template v-if="record.badQty !== undefined">，不良 {{ record.badQty }} 件</template>
           </span>
           <span v-else-if="record.finishedQty !== undefined">
             整批报工：完成 {{ record.finishedQty }} 件，不良 {{ record.badQty }} 件
