@@ -357,12 +357,116 @@ function buildComparisonItems(initialStatus = 'idle') {
   }))
 }
 
+function formatTaskBrief(task) {
+  const nextAction = getNextWorkflowAction(task)?.action ?? '已闭环'
+  const abnormalText = task.abnormalType ? `，异常：${task.abnormalType}` : ''
+
+  return `${task.id}｜${task.product}｜${task.line}｜${task.device}｜${task.process}｜进度 ${task.progress}%｜负责人 ${task.owner}｜截止 ${task.deadline}｜下一步：${nextAction}${abnormalText}`
+}
+
+function formatDeviceBrief(device) {
+  const taskText = device.currentTask ? `，当前工单 ${device.currentTask}` : ''
+
+  return `${device.code} ${device.name}｜${device.line}｜状态 ${device.status}｜利用率 ${device.utilization}%${taskText}`
+}
+
+function formatReportBrief(record) {
+  const finishedText = Number.isFinite(Number(record.finishedQty)) ? `完成 ${record.finishedQty} 件，` : ''
+  const progressText = Number.isFinite(Number(record.progress)) ? `进度 ${record.progress}%` : ''
+  const actionText = record.action ? `，动作：${record.action}` : ''
+
+  return `${record.time}｜${record.taskId}｜${record.device}｜${record.status}｜${finishedText}不良 ${
+    record.badQty ?? 0
+  } 件｜${progressText}${actionText}｜${record.remark}`
+}
+
+function rankTasksForAttention() {
+  return productionState.tasks
+    .filter((task) => task.status !== '已完成')
+    .map((task) => {
+      const nextAction = getNextWorkflowAction(task)
+      let score = 0
+
+      if (task.status === '异常') score += 60
+      if (task.urgent) score += 35
+      if (task.priority === '高') score += 24
+      if (task.priority === '中') score += 12
+      if (task.deadline <= '2026-06-08') score += 22
+      if (task.progress > 0 && task.progress < 50) score += 8
+
+      return {
+        ...task,
+        nextAction: nextAction?.action ?? '已闭环',
+        attentionScore: score,
+      }
+    })
+    .sort((a, b) => b.attentionScore - a.attentionScore)
+}
+
+function summarizeLines() {
+  const lineMap = new Map()
+
+  productionState.tasks.forEach((task) => {
+    const current = lineMap.get(task.line) ?? {
+      line: task.line,
+      total: 0,
+      active: 0,
+      abnormal: 0,
+      urgent: 0,
+      progressSum: 0,
+    }
+
+    current.total += 1
+    current.progressSum += Number(task.progress) || 0
+    if (task.status !== '已完成') current.active += 1
+    if (task.status === '异常') current.abnormal += 1
+    if (task.urgent) current.urgent += 1
+    lineMap.set(task.line, current)
+  })
+
+  return [...lineMap.values()]
+    .map((line) => ({
+      ...line,
+      avgProgress: line.total ? Math.round(line.progressSum / line.total) : 0,
+    }))
+    .sort((a, b) => b.abnormal - a.abnormal || b.urgent - a.urgent || b.active - a.active)
+}
+
 function buildBusinessContext() {
+  const attentionTasks = rankTasksForAttention().slice(0, 8)
+  const recentReports = productionState.reportRecords.slice(0, 8)
+  const lines = summarizeLines()
+  const abnormalReportCount = productionState.reportRecords.filter((record) => record.status === '异常').length
+  const badQtyTotal = productionState.reportRecords.reduce((sum, record) => sum + (Number(record.badQty) || 0), 0)
+  const activeDeviceCount = productionState.devices.filter((device) => device.status === '运行').length
+  const idleDeviceCount = productionState.devices.filter((device) => device.status === '待机').length
+
   return [
-    `统计：累计产出 ${stats.value.totalOutput} 件，计划 ${stats.value.plannedOutput} 件，工序平均进度 ${stats.value.completionRate}%，异常工单 ${stats.value.abnormalCount} 单，设备平均利用率 ${stats.value.deviceUtilization}%。`,
-    `加急任务：${urgentTasks.value.map((task) => `${task.id}/${task.product}/${task.process}/${task.progress}%/下一步${getNextWorkflowAction(task)?.action ?? '已闭环'}`).join('；') || '无'}`,
-    `异常任务：${abnormalTasks.value.map((task) => `${task.id}/${task.product}/${task.abnormalType || '生产异常'}/${task.deadline}`).join('；') || '无'}`,
-    `风险设备：${riskyDevices.value.map((device) => `${device.code}/${device.name}/${device.status}/${device.utilization}%`).join('；') || '无'}`,
+    '【自动识别范围】',
+    `已读取当前前端状态中的 ${productionState.tasks.length} 个工单、${productionState.devices.length} 台设备、${productionState.reportRecords.length} 条报工记录，并按最新数据实时生成上下文。`,
+    '',
+    '【整体概览】',
+    `累计产出 ${stats.value.totalOutput} 件，计划 ${stats.value.plannedOutput} 件，工序平均进度 ${stats.value.completionRate}%，异常工单 ${stats.value.abnormalCount} 单，设备平均利用率 ${stats.value.deviceUtilization}%。`,
+    `设备状态：运行 ${activeDeviceCount} 台，待机 ${idleDeviceCount} 台，预警/异常 ${riskyDevices.value.length} 台。报工质量：异常报工 ${abnormalReportCount} 条，累计不良 ${badQtyTotal} 件。`,
+    '',
+    '【系统自动识别的优先处理工单】',
+    attentionTasks.length
+      ? attentionTasks.map((task, index) => `${index + 1}. ${formatTaskBrief(task)}｜关注分 ${task.attentionScore}`).join('\n')
+      : '暂无未闭环工单。',
+    '',
+    '【设备风险】',
+    riskyDevices.value.length ? riskyDevices.value.map(formatDeviceBrief).join('\n') : '暂无预警或异常设备。',
+    '',
+    '【产线压力】',
+    lines
+      .map(
+        (line) =>
+          `${line.line}｜工单 ${line.total} 单｜未闭环 ${line.active} 单｜异常 ${line.abnormal} 单｜加急 ${line.urgent} 单｜平均进度 ${line.avgProgress}%`,
+      )
+      .join('\n'),
+    '',
+    '【最近报工记录】',
+    recentReports.length ? recentReports.map(formatReportBrief).join('\n') : '暂无报工记录。',
   ].join('\n')
 }
 
