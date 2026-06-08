@@ -6,6 +6,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { abnormalTypes, buildReportStats, productionTrend } from '../data/mock'
 import { productionState } from '../stores/productionStore'
+import { isLightTheme } from '../stores/themeStore'
 
 use([CanvasRenderer, LineChart, BarChart, PieChart, GridComponent, LegendComponent, TooltipComponent])
 
@@ -16,6 +17,7 @@ const deviceChart = ref(null)
 const lineChart = ref(null)
 const abnormalChart = ref(null)
 let chartInstances = []
+const appScale = 0.8
 
 const statusData = computed(() =>
   ['待生产', '生产中', '已完成', '异常'].map((status) => ({
@@ -45,6 +47,42 @@ const lineCompletionData = computed(() =>
   }),
 )
 
+const chartTheme = computed(() =>
+  isLightTheme.value
+    ? {
+        text: '#26364a',
+        muted: '#52677e',
+        axis: '#7f95ac',
+        split: '#c7d4e2',
+        tooltipBg: '#ffffff',
+        tooltipBorder: '#b9c7d6',
+      }
+    : {
+        text: '#dbeafe',
+        muted: '#b7c6d8',
+        axis: '#4b6682',
+        split: '#1d3954',
+        tooltipBg: '#0b1d2f',
+        tooltipBorder: '#2a4865',
+      },
+)
+
+function chartTooltip() {
+  return {
+    backgroundColor: chartTheme.value.tooltipBg,
+    borderColor: chartTheme.value.tooltipBorder,
+    textStyle: { color: chartTheme.value.text, fontWeight: 500 },
+  }
+}
+
+function chartAxisLabel(extra = {}) {
+  return { color: chartTheme.value.muted, fontWeight: 600, ...extra }
+}
+
+function chartLegend(extra = {}) {
+  return { textStyle: { color: chartTheme.value.muted, fontWeight: 600 }, ...extra }
+}
+
 function renderCharts() {
   if (!trendChart.value || !statusChart.value || !deviceChart.value || !lineChart.value || !abnormalChart.value) {
     return
@@ -52,11 +90,11 @@ function renderCharts() {
 
   if (chartInstances.length === 0) {
     chartInstances = [
-      init(trendChart.value),
-      init(statusChart.value),
-      init(deviceChart.value),
-      init(lineChart.value),
-      init(abnormalChart.value),
+      init(trendChart.value, null, { devicePixelRatio: window.devicePixelRatio / appScale }),
+      init(statusChart.value, null, { devicePixelRatio: window.devicePixelRatio / appScale }),
+      init(deviceChart.value, null, { devicePixelRatio: window.devicePixelRatio / appScale }),
+      init(lineChart.value, null, { devicePixelRatio: window.devicePixelRatio / appScale }),
+      init(abnormalChart.value, null, { devicePixelRatio: window.devicePixelRatio / appScale }),
     ]
   }
 
@@ -64,19 +102,19 @@ function renderCharts() {
     animationDuration: 900,
     animationEasing: 'cubicOut',
     color: ['#5eead4', '#f59e0b'],
-    tooltip: { trigger: 'axis' },
-    legend: { textStyle: { color: '#9fb2c6' } },
+    tooltip: { trigger: 'axis', ...chartTooltip() },
+    legend: chartLegend(),
     grid: { left: 42, right: 18, top: 38, bottom: 32 },
     xAxis: {
       type: 'category',
       data: productionTrend.map((item) => item.time),
-      axisLabel: { color: '#9fb2c6' },
-      axisLine: { lineStyle: { color: '#27445f' } },
+      axisLabel: chartAxisLabel(),
+      axisLine: { lineStyle: { color: chartTheme.value.axis } },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#9fb2c6' },
-      splitLine: { lineStyle: { color: '#17314a' } },
+      axisLabel: chartAxisLabel(),
+      splitLine: { lineStyle: { color: chartTheme.value.split } },
     },
     series: [
       {
@@ -98,15 +136,15 @@ function renderCharts() {
     animationDuration: 1000,
     animationEasing: 'quarticOut',
     color: ['#94a3b8', '#38bdf8', '#22c55e', '#ef4444'],
-    tooltip: { trigger: 'item' },
-    legend: { bottom: 0, textStyle: { color: '#9fb2c6' } },
+    tooltip: { trigger: 'item', ...chartTooltip() },
+    legend: chartLegend({ bottom: 0 }),
     series: [
       {
         name: '任务状态',
         type: 'pie',
         radius: ['42%', '68%'],
         center: ['50%', '43%'],
-        label: { color: '#dbeafe' },
+        label: { color: chartTheme.value.text, fontWeight: 600 },
         data: statusData.value,
       },
     ],
@@ -116,19 +154,19 @@ function renderCharts() {
     animationDuration: 900,
     animationEasing: 'cubicOut',
     color: ['#67e8f9'],
-    tooltip: { trigger: 'axis' },
+    tooltip: { trigger: 'axis', ...chartTooltip() },
     grid: { left: 48, right: 18, top: 22, bottom: 42 },
     xAxis: {
       type: 'category',
       data: productionState.devices.map((device) => device.code),
-      axisLabel: { color: '#9fb2c6', interval: 0 },
-      axisLine: { lineStyle: { color: '#27445f' } },
+      axisLabel: chartAxisLabel({ interval: 0 }),
+      axisLine: { lineStyle: { color: chartTheme.value.axis } },
     },
     yAxis: {
       type: 'value',
       max: 100,
-      axisLabel: { color: '#9fb2c6', formatter: '{value}%' },
-      splitLine: { lineStyle: { color: '#17314a' } },
+      axisLabel: chartAxisLabel({ formatter: '{value}%' }),
+      splitLine: { lineStyle: { color: chartTheme.value.split } },
     },
     series: [
       {
@@ -144,19 +182,19 @@ function renderCharts() {
     animationDuration: 900,
     animationEasing: 'cubicOut',
     color: ['#22c55e'],
-    tooltip: { trigger: 'axis' },
+    tooltip: { trigger: 'axis', ...chartTooltip() },
     grid: { left: 48, right: 18, top: 24, bottom: 42 },
     xAxis: {
       type: 'category',
       data: lineCompletionData.value.map((item) => item.line),
-      axisLabel: { color: '#9fb2c6' },
-      axisLine: { lineStyle: { color: '#27445f' } },
+      axisLabel: chartAxisLabel(),
+      axisLine: { lineStyle: { color: chartTheme.value.axis } },
     },
     yAxis: {
       type: 'value',
       max: 100,
-      axisLabel: { color: '#9fb2c6', formatter: '{value}%' },
-      splitLine: { lineStyle: { color: '#17314a' } },
+      axisLabel: chartAxisLabel({ formatter: '{value}%' }),
+      splitLine: { lineStyle: { color: chartTheme.value.split } },
     },
     series: [
       {
@@ -172,15 +210,15 @@ function renderCharts() {
     animationDuration: 1000,
     animationEasing: 'quarticOut',
     color: ['#ef4444', '#f59e0b', '#8b5cf6'],
-    tooltip: { trigger: 'item' },
-    legend: { bottom: 0, textStyle: { color: '#9fb2c6' } },
+    tooltip: { trigger: 'item', ...chartTooltip() },
+    legend: chartLegend({ bottom: 0 }),
     series: [
       {
         name: '异常类型',
         type: 'pie',
         radius: ['38%', '66%'],
         center: ['50%', '43%'],
-        label: { color: '#dbeafe' },
+        label: { color: chartTheme.value.text, fontWeight: 600 },
         data: abnormalTypes,
       },
     ],
@@ -198,6 +236,11 @@ onMounted(async () => {
 })
 
 watch(chartVersion, async () => {
+  await nextTick()
+  renderCharts()
+})
+
+watch(isLightTheme, async () => {
   await nextTick()
   renderCharts()
 })

@@ -14,6 +14,9 @@ body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
+  text-rendering: auto;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
 }
 
 body {
@@ -1994,7 +1997,7 @@ td small {
 }
 
 [data-theme='light'] body {
-  color: #172033;
+  color: #101827;
   background: #eef4f8;
 }
 
@@ -2027,8 +2030,17 @@ td small {
 [data-theme='light'] .workbar-group > span,
 [data-theme='light'] .workbar-status small,
 [data-theme='light'] .ai-chat-header span,
-[data-theme='light'] .device-detail dt {
-  color: #5d6d82;
+[data-theme='light'] .device-detail dt,
+[data-theme='light'] .report-kpis article small,
+[data-theme='light'] .create-task-grid label,
+[data-theme='light'] .report-form label,
+[data-theme='light'] .chart-placeholder,
+[data-theme='light'] .initial-state,
+[data-theme='light'] .history-meta,
+[data-theme='light'] .record-list span,
+[data-theme='light'] .record-list small,
+[data-theme='light'] .process-stage small {
+  color: #43566e;
 }
 
 [data-theme='light'] .sidebar a {
@@ -2037,7 +2049,7 @@ td small {
 
 [data-theme='light'] .sidebar-pin,
 [data-theme='light'] .workbar-pin {
-  color: #5d6d82;
+  color: #43566e;
 }
 
 [data-theme='light'] .sidebar-pin:hover,
@@ -2146,7 +2158,7 @@ td small {
 
 [data-theme='light'] .api-key-panel span,
 [data-theme='light'] .api-key-panel small {
-  color: #52677e;
+  color: #43566e;
 }
 
 [data-theme='light'] .process-stage.is-active,
@@ -2180,7 +2192,7 @@ td small {
 [data-theme='light'] .next-action-panel small,
 [data-theme='light'] .create-task-heading span,
 [data-theme='light'] .initial-state {
-  color: #52677e;
+  color: #43566e;
 }
 
 [data-theme='light'] .locked-device {
@@ -2190,7 +2202,7 @@ td small {
 
 [data-theme='light'] .locked-device span,
 [data-theme='light'] .locked-device small {
-  color: #52677e;
+  color: #43566e;
 }
 
 [data-theme='light'] .locked-device strong {
@@ -2324,7 +2336,7 @@ td small {
 }
 
 [data-theme='light'] .not-found p {
-  color: #5d6d82;
+  color: #43566e;
 }
 
 .report-kpis article strong {
