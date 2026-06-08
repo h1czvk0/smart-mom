@@ -38,16 +38,6 @@ const taskRecords = computed(() =>
 
 const remainingQty = computed(() => Math.max(task.value.planQty - task.value.finishedQty, 0))
 
-const processTimeline = computed(() => {
-  const steps = ['排产下发', '物料齐套', task.value.process, '质量复核', '入库交接']
-  const activeIndex = task.value.status === '已完成' ? steps.length - 1 : Math.max(1, Math.round(task.value.progress / 25))
-
-  return steps.map((name, index) => ({
-    name,
-    done: index <= activeIndex,
-  }))
-})
-
 function submitReport() {
   message.value = ''
 
@@ -133,9 +123,6 @@ function setMessage(text, type) {
           <span>{{ task.line }} / {{ task.device }}</span>
         </div>
         <ProgressBar :value="task.progress" />
-        <div class="timeline">
-          <span v-for="step in processTimeline" :key="step.name" :class="{ done: step.done }">{{ step.name }}</span>
-        </div>
       </div>
     </section>
 
