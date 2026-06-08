@@ -157,7 +157,7 @@ function resetFilters() {
           </select>
         </label>
         <label>
-          首选设备
+          绑定设备
           <select v-model="createForm.device" required>
             <option v-for="device in availableDevices" :key="device.code" :value="`${device.code} ${device.name}`">
               {{ device.code }} {{ device.name }}

@@ -240,8 +240,6 @@ export function submitTaskReport(taskId, payload) {
     throw new Error('异常报工必须填写异常说明。')
   }
 
-  task.device = payload.device || task.device
-
   if (payload.abnormal) {
     task.status = '异常'
     task.abnormalType = abnormalText

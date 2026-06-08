@@ -1701,6 +1701,24 @@ td small {
   grid-column: 1 / -1;
 }
 
+.locked-device {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #28445f;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #0c1c2d;
+}
+
+.locked-device span,
+.locked-device small {
+  color: #91a4b8;
+}
+
+.locked-device strong {
+  color: #e7eef8;
+}
+
 .workflow-report-form > button {
   justify-self: start;
 }
@@ -2122,6 +2140,20 @@ td small {
 [data-theme='light'] .create-task-heading span,
 [data-theme='light'] .initial-state {
   color: #52677e;
+}
+
+[data-theme='light'] .locked-device {
+  border-color: #b9c7d6;
+  background: #f8fbfd;
+}
+
+[data-theme='light'] .locked-device span,
+[data-theme='light'] .locked-device small {
+  color: #52677e;
+}
+
+[data-theme='light'] .locked-device strong {
+  color: #152336;
 }
 
 [data-theme='light'] .ai-summary,

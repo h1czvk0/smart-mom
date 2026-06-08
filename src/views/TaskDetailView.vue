@@ -16,7 +16,6 @@ import {
 const route = useRoute()
 const task = computed(() => findTaskById(route.params.id) ?? productionState.tasks[0])
 const form = reactive({
-  device: '',
   abnormal: false,
   abnormalText: '',
   remark: '',
@@ -26,8 +25,7 @@ const messageType = ref('success')
 
 watch(
   task,
-  (current) => {
-    form.device = current.device
+  () => {
     form.abnormal = false
     form.abnormalText = ''
     form.remark = ''
@@ -38,9 +36,6 @@ watch(
 const nextAction = computed(() => getNextWorkflowAction(task.value))
 const taskRecords = computed(() =>
   productionState.reportRecords.filter((record) => record.taskId === task.value.id),
-)
-const availableDevices = computed(() =>
-  productionState.devices.filter((device) => device.line === task.value.line),
 )
 const processTimeline = computed(() =>
   workflowStages.map((stage, stageIndex) => ({
@@ -185,14 +180,11 @@ function setMessage(text, type) {
       </div>
 
       <form class="report-form workflow-report-form" @submit.prevent="submitReport">
-        <label>
-          使用设备
-          <select v-model="form.device" :disabled="!nextAction">
-            <option v-for="device in availableDevices" :key="device.code" :value="`${device.code} ${device.name}`">
-              {{ device.code }} {{ device.name }}
-            </option>
-          </select>
-        </label>
+        <div class="locked-device">
+          <span>绑定设备</span>
+          <strong>{{ task.device }}</strong>
+          <small>创建任务时已锁定，后续报工不可更改</small>
+        </div>
         <label class="check-inline">
           <input v-model="form.abnormal" type="checkbox" :disabled="!nextAction" />
           本次报工存在异常
