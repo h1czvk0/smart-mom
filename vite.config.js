@@ -71,6 +71,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
+    base: mode === 'production' ? '/smart-mom/' : '/',
     plugins: [vue(), deepSeekProxy(env)],
     resolve: {
       alias: {
